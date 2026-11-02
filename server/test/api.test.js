@@ -140,3 +140,27 @@ test("rooms: create, join, authorization, live chat", async () => {
   assert.equal((await api(`/api/rooms/${roomId}`, { method: "DELETE", token: carol.accessToken })).status, 403);
   assert.equal((await api(`/api/rooms/${roomId}`, { method: "DELETE", token: bob.accessToken })).status, 200);
 });
+
+test("sockets survive malformed payloads and reject operator injection", async () => {
+  const dave = (await register("dave")).body;
+  const created = await api("/api/rooms", { method: "POST", token: dave.accessToken, body: { name: "Hardening" } });
+  const roomId = created.body.room.id;
+
+  const sock = connect(base, { auth: { token: dave.accessToken }, transports: ["websocket"] });
+  await new Promise((r) => sock.on("connect", r));
+
+  // Garbage that used to crash the server or slip into the database query.
+  sock.emit("message:send", null);
+  sock.emit("message:send", "not an object");
+  sock.emit("message:send", { roomId: { $ne: null }, text: "x" }, "not a function");
+  sock.emit("room:close", { weird: true });
+  const injected = await sock.emitWithAck("room:open", { $ne: null });
+  assert.equal(injected.error, "Invalid room", "operator objects are rejected");
+  const notString = await sock.emitWithAck("message:send", { roomId, text: { $gt: "" } });
+  assert.ok(notString.error, "non-string text is rejected");
+
+  // The server is still alive and works normally.
+  assert.ok((await sock.emitWithAck("room:open", roomId)).ok);
+  assert.ok((await sock.emitWithAck("message:send", { roomId, text: "still fine" })).ok);
+  sock.close();
+});

@@ -4,6 +4,15 @@ A real-time chat app: sign up, log in, create public rooms, join any room, and t
 
 **Stack:** React + Vite · Node/Express 5 · Socket.IO · MongoDB (Mongoose) · JWT auth
 
+## Capstone contents
+
+| Part | Where | What it is |
+|---|---|---|
+| Chat application | `client/`, `server/` | Full-stack real-time chat with secure JWT auth, public rooms and live messaging |
+| Security documentation | `docs/SECURITY.md` | How authentication and authorization work, and why |
+| Socket learning notes | `notes-to-sockets/` | An animated, beginner-to-advanced guide to sockets, Socket.IO and socket security. Open `notes-to-sockets/index.html` in a browser (no install needed) |
+| Automated tests | `server/test/` | End-to-end tests for auth, authorization, and socket hardening (`npm test`) |
+
 ## Run it
 
 1. **MongoDB** – run it locally (`mongodb://127.0.0.1:27017`) or use a free Atlas cluster.

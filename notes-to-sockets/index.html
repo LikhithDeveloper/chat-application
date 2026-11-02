@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sockets, Explained Visually — Beginner to Advanced</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<!-- ============ SIDE MENU ============ -->
+<nav class="side" id="menu">
+  <h2>🔌 Sockets, Visually</h2>
+  <div class="tag">Beginner → Advanced</div>
+  <div class="group">Beginner</div>
+  <a href="#c1">1. What is a socket?</a>
+  <a href="#c2">2. The network layers</a>
+  <a href="#c3">3. IP address &amp; port</a>
+  <a href="#c4">4. TCP vs UDP</a>
+  <div class="group">Middle</div>
+  <a href="#c5">5. Life of a socket</a>
+  <a href="#c6">6. How the web got real-time</a>
+  <a href="#c7">7. WebSocket</a>
+  <a href="#c8">8. Socket.IO</a>
+  <a href="#c9">9. Rooms &amp; namespaces</a>
+  <a href="#c10">10. Socket.IO packets</a>
+  <div class="group">Real-world</div>
+  <a href="#c11">11. Middleware in depth</a>
+  <a href="#c12">12. Sending binary data</a>
+  <a href="#c13">13. CORS &amp; connect_error</a>
+  <a href="#c14">14. TLS &amp; wss://</a>
+  <a href="#c15">15. Server options</a>
+  <a href="#c16">16. Server vs socket instance</a>
+  <div class="group">Advanced</div>
+  <a href="#c17">17. Heartbeat &amp; reconnect</a>
+  <a href="#c18">18. Scaling to many servers</a>
+  <a href="#c19">19. Security</a>
+  <a href="#c20">20. Attacks &amp; defences</a>
+  <a href="#c21">21. Our chat app, step by step</a>
+  <div class="group">Finish</div>
+  <a href="#c22">22. Glossary &amp; quiz</a>
+</nav>
+
+<main>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <span class="level beginner" style="align-self:flex-start">Read top to bottom</span>
+  <h1>Sockets,<br />explained with pictures.</h1>
+  <p>No heavy words. Every idea has a small animation you can click. Start from zero and finish knowing how real-time apps like chat really work.</p>
+  <div class="stage" id="heroStage" style="max-width:720px">
+    <div class="pipe open"></div>
+    <div class="node float" id="hA"><span class="big">💻</span>You<small>Browser</small></div>
+    <div class="node float" id="hB" style="animation-delay:.5s"><span class="big">🖥️</span>Server<small>Node.js</small></div>
+  </div>
+  <div><a class="btn" href="#c1">Start learning ↓</a></div>
+</section>
+
+<!-- ============ 1 ============ -->
+<section class="chapter reveal" id="c1">
+  <span class="level beginner">Beginner</span>
+  <h2>1. What is a socket?</h2>
+  <p>Two programs want to talk. Maybe one is your browser and one is a server far away. They need a <b>door to send and receive data</b>. That door is called a <b>socket</b>.</p>
+  <div class="callout"><p><b>Simple definition:</b> A socket is one end of a two-way connection between two programs. Each program holds one end, like two people each holding one phone.</p></div>
+
+  <h3>Letters vs. phone call</h3>
+  <p>The normal web (HTTP) works like <b>letters</b>. You write a letter (request), the server answers (response), and then the conversation is over. If the server has news later, it <b>cannot</b> write to you first. You must ask again.</p>
+  <p>A socket stays open like a <b>phone call</b>. Both sides can talk at any time. That is why chat apps use sockets: a new message must reach you <i>instantly</i>, without you asking.</p>
+
+  <div class="demo">
+    <div class="demo-title">Letters (HTTP) vs. Phone call (socket)</div>
+    <div class="hint">Click the buttons. Watch who can start the conversation.</div>
+    <div class="cols">
+      <div>
+        <b>✉️ HTTP (letters)</b>
+        <div class="stage" id="httpStage">
+          <div class="pipe"></div>
+          <div class="node" id="httpC"><span class="big">💻</span>Client</div>
+          <div class="node" id="httpS"><span class="big">🖥️</span>Server</div>
+        </div>
+        <div class="controls">
+          <button class="btn small" id="httpAsk">Client asks</button>
+          <button class="btn small ghost" id="httpPush">Server wants to speak first</button>
+        </div>
+        <div class="caption" id="httpCap">Try both buttons.</div>
+      </div>
+      <div>
+        <b>📞 Socket (phone call)</b>
+        <div class="stage" id="sockStage">
+          <div class="pipe open"></div>
+          <div class="node on" id="sockC"><span class="big">💻</span>Client</div>
+          <div class="node on" id="sockS"><span class="big">🖥️</span>Server</div>
+        </div>
+        <div class="controls">
+          <button class="btn small" id="sockAsk">Client talks</button>
+          <button class="btn small ghost" id="sockPush">Server talks</button>
+        </div>
+        <div class="caption" id="sockCap">The line is already open. Either side can talk.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Where do you see sockets?</h3>
+  <div class="cards">
+    <div class="card"><div class="emoji">💬</div><h4>Chat apps</h4><p>WhatsApp Web, Slack, Discord. Messages appear without refreshing.</p></div>
+    <div class="card"><div class="emoji">🎮</div><h4>Online games</h4><p>Everyone's moves must reach everyone fast.</p></div>
+    <div class="card"><div class="emoji">📈</div><h4>Live prices</h4><p>Stock and crypto numbers that keep changing.</p></div>
+    <div class="card"><div class="emoji">📍</div><h4>Live tracking</h4><p>Watching a delivery bike move on a map.</p></div>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="chapter reveal" id="c2">
+  <span class="level beginner">Beginner</span>
+  <h2>2. The network layers</h2>
+  <p>Sending data over the internet is a big job, so it is split into <b>layers</b>. Each layer does one small job and trusts the layer below it. Click each layer to learn about it.</p>
+
+  <div class="demo">
+    <div class="demo-title">The layer cake</div>
+    <div class="hint">Top = what you write. Bottom = the real wires.</div>
+    <div class="layers" id="layers"></div>
+    <div class="caption" id="layerInfo">👆 Click a layer.</div>
+  </div>
+
+  <div class="callout tip"><p><b>Where is the "socket" in all this?</b> A socket is the doorway between your program and the <b>Transport layer</b> (TCP or UDP). Your code says "send these bytes", and the operating system does the rest below.</p></div>
+
+  <p>When you send a message, it goes <b>down</b> the layers on your computer. Each layer adds its own label (called a <b>header</b>), like putting a letter in an envelope, then that envelope in a bigger box. On the other computer the packet goes <b>up</b>, and each layer removes its label.</p>
+
+  <div class="demo">
+    <div class="demo-title">Wrapping a message</div>
+    <div class="controls" style="margin:0 0 12px"><button class="btn small" id="wrapBtn">Wrap it ▶</button><button class="btn small ghost" id="unwrapBtn">Unwrap ◀</button></div>
+    <div id="wrapBox" style="display:flex;justify-content:center;padding:10px"></div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="chapter reveal" id="c3">
+  <span class="level beginner">Beginner</span>
+  <h2>3. IP address &amp; port</h2>
+  <p>To reach a program on the internet you need two things:</p>
+  <div class="cards">
+    <div class="card"><div class="emoji">🏢</div><h4>IP address = the building</h4><p>Finds the right <b>computer</b>. Example: <code>192.168.1.5</code>. Your own computer is always <code>127.0.0.1</code> (also called <code>localhost</code>).</p></div>
+    <div class="card"><div class="emoji">🚪</div><h4>Port = the door</h4><p>Finds the right <b>program</b> on that computer. A number from 0 to 65535. One door = one program.</p></div>
+  </div>
+  <p>Together they are written like <code>localhost:5000</code>. That is the <b>address of a socket</b>.</p>
+
+  <div class="demo">
+    <div class="demo-title">One computer, many doors</div>
+    <div class="hint">Click a door and see which program lives there. These are the ports used in <i>our chat project</i>.</div>
+    <div class="controls" style="margin:0 0 14px" id="doors"></div>
+    <div class="caption" id="doorInfo">🏢 Computer <code>127.0.0.1</code> — pick a door.</div>
+  </div>
+  <div class="callout warn"><p><b>Common error:</b> <code>EADDRINUSE</code> means "that door is already taken". Two programs cannot use the same port. Close the old one or choose another port.</p></div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="chapter reveal" id="c4">
+  <span class="level beginner">Beginner</span>
+  <h2>4. TCP vs UDP</h2>
+  <p>There are two main ways to send data. Think of <b>TCP</b> as a registered courier who makes sure each parcel arrives, in order. Think of <b>UDP</b> as shouting across a field: fast, but some words may be lost.</p>
+  <table>
+    <tr><th></th><th>TCP 📦</th><th>UDP 📢</th></tr>
+    <tr><td>Connection</td><td>Set up first (handshake)</td><td>None, just send</td></tr>
+    <tr><td>Lost data</td><td>Sent again automatically</td><td>Gone forever</td></tr>
+    <tr><td>Order</td><td>Always in order</td><td>May get mixed up</td></tr>
+    <tr><td>Speed</td><td>A bit slower</td><td>Very fast</td></tr>
+    <tr><td>Used by</td><td>Web, chat, email, <b>Socket.IO</b></td><td>Video calls, games, DNS</td></tr>
+  </table>
+
+  <h3>The TCP handshake</h3>
+  <p>Before talking, TCP does a quick "hello" in three steps. Both sides must be sure the other is alive.</p>
+  <div class="demo">
+    <div class="demo-title">3-way handshake</div>
+    <div class="stage" id="tcpStage">
+      <div class="pipe"></div>
+      <div class="node" id="tcpC"><span class="big">💻</span>Client<small id="tcpCs">closed</small></div>
+      <div class="node" id="tcpS"><span class="big">🖥️</span>Server<small id="tcpSs">listening</small></div>
+    </div>
+    <div class="controls"><button class="btn small" id="tcpNext">Next step ▶</button><button class="btn small ghost" id="tcpReset">Reset</button></div>
+    <div class="caption" id="tcpCap">Press <b>Next step</b>.</div>
+  </div>
+
+  <h3>What if a packet is lost?</h3>
+  <p>The internet is messy. Packets get lost. Send 6 packets over a bad network and see the difference.</p>
+  <div class="demo">
+    <div class="demo-title">Lossy network test</div>
+    <div class="cols">
+      <div><b>📦 TCP</b><div class="stage" id="lossT"><div class="node" id="lossTC"><span class="big">💻</span></div><div class="node" id="lossTS"><span class="big">🖥️</span><small id="lossTr">got: 0/6</small></div></div></div>
+      <div><b>📢 UDP</b><div class="stage" id="lossU"><div class="node" id="lossUC"><span class="big">💻</span></div><div class="node" id="lossUS"><span class="big">🖥️</span><small id="lossUr">got: 0/6</small></div></div></div>
+    </div>
+    <div class="controls"><button class="btn small" id="lossGo">Send 6 packets</button></div>
+    <div class="caption" id="lossCap">About 1 in 3 packets will be dropped at random.</div>
+  </div>
+  <div class="callout tip"><p><b>Why chat uses TCP:</b> imagine "meet me at 5" arriving as "meet at". We need every message, in order. That is exactly what TCP promises.</p></div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="chapter reveal" id="c5">
+  <span class="level mid">Middle</span>
+  <h2>5. Life of a socket</h2>
+  <p>Server and client do different steps. The server <b>waits</b>, the client <b>calls</b>. This is true in every language. Step through it and watch the matching code line.</p>
+
+  <div class="demo">
+    <div class="demo-title">Server &amp; client, step by step</div>
+    <div class="cols">
+      <div>
+        <b>🖥️ Server code (Node.js)</b>
+<pre id="srvCode"><span data-l="0"><span class="k">const</span> { Server } = <span class="k">require</span>(<span class="s">"socket.io"</span>);</span>
+<span data-l="1"><span class="k">const</span> io = <span class="k">new</span> Server(<span class="s">5000</span>);</span>
+<span data-l="2">io.on(<span class="s">"connection"</span>, (socket) => {</span>
+<span data-l="4">  socket.on(<span class="s">"chat"</span>, (text) => {</span>
+<span data-l="5">    socket.emit(<span class="s">"chat"</span>, <span class="s">"echo: "</span> + text);</span>
+<span data-l="4">  });</span>
+<span data-l="6">  socket.on(<span class="s">"disconnect"</span>, () => {});</span>
+<span data-l="2">});</span></pre>
+      </div>
+      <div>
+        <b>💻 Client code (browser or Node.js)</b>
+<pre id="cliCode"><span data-l="0"><span class="k">import</span> { io } <span class="k">from</span> <span class="s">"socket.io-client"</span>;</span>
+<span data-l="3"><span class="k">const</span> socket = io(<span class="s">"http://localhost:5000"</span>);</span>
+<span data-l="4">socket.emit(<span class="s">"chat"</span>, <span class="s">"hello"</span>);</span>
+<span data-l="5">socket.on(<span class="s">"chat"</span>, (text) => console.log(text));</span>
+<span data-l="6">socket.disconnect();</span></pre>
+      </div>
+    </div>
+    <div class="stage" id="lifeStage">
+      <div class="pipe"></div>
+      <div class="node" id="lifeC"><span class="big">💻</span>Client<small id="lifeCs">nothing yet</small></div>
+      <div class="node" id="lifeS"><span class="big">🖥️</span>Server<small id="lifeSs">nothing yet</small></div>
+    </div>
+    <div class="controls"><button class="btn small" id="lifeNext">Next step ▶</button><button class="btn small ghost" id="lifeReset">Reset</button></div>
+    <div class="caption" id="lifeCap">Press <b>Next step</b>.</div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="emoji">1️⃣</div><h4>Start the server</h4><p><code>new Server(5000)</code> creates the socket, claims port 5000 and starts waiting.</p></div>
+    <div class="card"><div class="emoji">2️⃣</div><h4>Wait for callers</h4><p><code>io.on("connection")</code> says what to do each time a client arrives.</p></div>
+    <div class="card"><div class="emoji">3️⃣</div><h4>Connect</h4><p><code>io(url)</code> calls the server. Handshake, then upgrade to WebSocket.</p></div>
+    <div class="card"><div class="emoji">4️⃣</div><h4>emit / on</h4><p>Send and receive named events. As long as you want.</p></div>
+    <div class="card"><div class="emoji">5️⃣</div><h4>disconnect</h4><p>Hang up. The other side gets a <code>"disconnect"</code> event.</p></div>
+  </div>
+  <div class="callout"><p><b>Where did TCP go?</b> It is still there, hidden. Socket.IO opens the TCP connection for you and adds named events, JSON data and reconnect on top. Under the hood it is the same create → listen → connect → accept → talk → close story you saw in chapter 4. A plain TCP socket (Node's <code>net</code> module) only sends raw bytes, so "hi" and "yo" sent quickly could arrive glued as "hiyo". Socket.IO fixes that by sending separate <b>packets</b>.</p></div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="chapter reveal" id="c6">
+  <span class="level mid">Middle</span>
+  <h2>6. How the web got real-time</h2>
+  <p>The web was built for letters, not phone calls. Over time people invented tricks to get "live" updates. Pick a method and watch what happens when the server gets a new message at <b>2.5 seconds</b>.</p>
+
+  <div class="demo">
+    <div class="demo-title">Four ways to get live data</div>
+    <div class="controls" style="margin:0 0 10px" id="evoTabs"></div>
+    <div class="stage" id="evoStage" style="min-height:170px">
+      <div class="pipe" id="evoPipe"></div>
+      <div class="node" id="evoC"><span class="big">💻</span>Client</div>
+      <div class="node" id="evoS"><span class="big">🖥️</span>Server</div>
+    </div>
+    <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:8px">
+      <span>📨 Requests sent: <b id="evoReq">0</b></span>
+      <span>⏱️ Time to get the message: <b id="evoDelay">–</b></span>
+    </div>
+    <div class="controls"><button class="btn small" id="evoGo">Run 6 seconds ▶</button></div>
+    <div class="caption" id="evoCap">Pick a method, then press Run.</div>
+  </div>
+
+  <table>
+    <tr><th>Method</th><th>Idea</th><th>Problem</th></tr>
+    <tr><td><b>Polling</b></td><td>Ask again and again: "anything new?"</td><td>Wastes requests. Delay up to one interval.</td></tr>
+    <tr><td><b>Long polling</b></td><td>Ask, and the server waits to answer until it has news.</td><td>Must re-ask after each answer. Heavy headers every time.</td></tr>
+    <tr><td><b>SSE</b> (Server-Sent Events)</td><td>One open request; server keeps sending text.</td><td>One direction only (server → client).</td></tr>
+    <tr><td><b>WebSocket</b></td><td>Upgrade to a permanent two-way pipe.</td><td>Needs extra work for reconnects, rooms, etc. (Socket.IO helps!)</td></tr>
+  </table>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="chapter reveal" id="c7">
+  <span class="level mid">Middle</span>
+  <h2>7. WebSocket</h2>
+  <p><b>WebSocket</b> is a protocol (a set of rules) that gives browsers a real two-way socket. It runs on top of TCP. The URL starts with <code>ws://</code> (or <code>wss://</code> when encrypted, like https).</p>
+
+  <h3>It starts as normal HTTP</h3>
+  <p>A WebSocket begins with a regular HTTP request that says <i>"please upgrade me"</i>. If the server agrees, it replies <code>101 Switching Protocols</code>. From then on, the same TCP connection is used for WebSocket data. This trick lets it pass through ordinary web servers and firewalls.</p>
+
+  <div class="demo">
+    <div class="demo-title">The upgrade handshake</div>
+    <div class="stage" id="wsStage">
+      <div class="pipe" id="wsPipe"></div>
+      <div class="node" id="wsC"><span class="big">💻</span>Browser<small id="wsCs">HTTP</small></div>
+      <div class="node" id="wsS"><span class="big">🖥️</span>Server<small id="wsSs">HTTP</small></div>
+    </div>
+    <pre id="wsCode" style="min-height:130px">Press "Next step"</pre>
+    <div class="controls"><button class="btn small" id="wsNext">Next step ▶</button><button class="btn small ghost" id="wsReset">Reset</button></div>
+    <div class="caption" id="wsCap">Press <b>Next step</b>.</div>
+  </div>
+
+  <h3>Frames: the small pieces</h3>
+  <p>After the upgrade, data travels in small pieces called <b>frames</b>. A frame has a tiny header (2–14 bytes) and then your data. Compare that to HTTP, which repeats hundreds of bytes of headers on every request. That is why WebSocket is light and fast.</p>
+  <div class="cards">
+    <div class="card"><div class="emoji">📝</div><h4>Text frame</h4><p>Your string, like JSON.</p></div>
+    <div class="card"><div class="emoji">🧱</div><h4>Binary frame</h4><p>Raw bytes: images, audio, files.</p></div>
+    <div class="card"><div class="emoji">🏓</div><h4>Ping / Pong</h4><p>"Are you alive?" "Yes!"</p></div>
+    <div class="card"><div class="emoji">👋</div><h4>Close frame</h4><p>Polite goodbye with a reason code.</p></div>
+  </div>
+  <h3>Plain WebSocket in code</h3>
+<pre><span class="c">// browser</span>
+<span class="k">const</span> ws = <span class="k">new</span> WebSocket(<span class="s">"ws://localhost:5000"</span>);
+ws.onopen    = () => ws.send(<span class="s">"hello"</span>);
+ws.onmessage = (e) => console.log(e.data);
+ws.onclose   = () => console.log(<span class="s">"closed"</span>);</pre>
+  <div class="callout warn"><p><b>What plain WebSocket does NOT give you:</b> automatic reconnect, rooms, named events, "did the message arrive?" confirmation, or a fallback if WebSockets are blocked. You must build all that yourself, or use <b>Socket.IO</b>.</p></div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="chapter reveal" id="c8">
+  <span class="level mid">Middle</span>
+  <h2>8. Socket.IO</h2>
+  <p><b>Socket.IO</b> is a library (for Node.js server and browser client) built <b>on top of</b> WebSocket. It adds the useful things we just said were missing. <i>This is what our chat app uses.</i></p>
+  <div class="callout warn"><p><b>Careful:</b> Socket.IO is <b>not</b> the same as WebSocket. A plain WebSocket client cannot talk to a Socket.IO server, because Socket.IO wraps messages in its own format (see chapter 10).</p></div>
+
+  <div class="cards">
+    <div class="card"><div class="emoji">🏷️</div><h4>Named events</h4><p>Not just "a string". You say <code>emit("message:send", data)</code> and listen with <code>on("message:send")</code>.</p></div>
+    <div class="card"><div class="emoji">🔁</div><h4>Auto reconnect</h4><p>Wi-Fi drops? It keeps trying again, with growing waits.</p></div>
+    <div class="card"><div class="emoji">🪂</div><h4>Fallback</h4><p>If WebSocket is blocked, it starts with HTTP polling, then upgrades.</p></div>
+    <div class="card"><div class="emoji">🏠</div><h4>Rooms</h4><p>Send only to a group of users.</p></div>
+    <div class="card"><div class="emoji">✅</div><h4>Acknowledgements</h4><p>"Did the server get it?" You can get a reply to a single emit.</p></div>
+    <div class="card"><div class="emoji">🔐</div><h4>Auth hook</h4><p>A middleware can check a token before allowing connection.</p></div>
+  </div>
+
+  <h3>The smallest example</h3>
+  <div class="cols">
+<pre><span class="c">// server</span>
+<span class="k">const</span> io = <span class="k">new</span> Server(httpServer);
+
+io.on(<span class="s">"connection"</span>, (socket) => {
+  socket.on(<span class="s">"chat"</span>, (text) => {
+    io.emit(<span class="s">"chat"</span>, text); <span class="c">// to everyone</span>
+  });
+});</pre>
+<pre><span class="c">// client</span>
+<span class="k">const</span> socket = io();
+
+socket.emit(<span class="s">"chat"</span>, <span class="s">"hi all"</span>);
+
+socket.on(<span class="s">"chat"</span>, (text) => {
+  console.log(text);
+});</pre>
+  </div>
+
+  <h3>Four ways to send</h3>
+  <table>
+    <tr><th>Code (on server)</th><th>Who gets it?</th></tr>
+    <tr><td><code>socket.emit(...)</code></td><td>Only that one client</td></tr>
+    <tr><td><code>io.emit(...)</code></td><td>Everyone connected</td></tr>
+    <tr><td><code>socket.broadcast.emit(...)</code></td><td>Everyone <b>except</b> that client</td></tr>
+    <tr><td><code>io.to("room1").emit(...)</code></td><td>Everyone inside "room1"</td></tr>
+  </table>
+
+  <h3>Acknowledgement (a reply to one message)</h3>
+<pre><span class="c">// client: send and wait for the answer</span>
+<span class="k">const</span> res = <span class="k">await</span> socket.emitWithAck(<span class="s">"message:send"</span>, { text: <span class="s">"hi"</span> });
+<span class="k">if</span> (res.error) showError(res.error);
+
+<span class="c">// server: answer with the last argument</span>
+socket.on(<span class="s">"message:send"</span>, (data, ack) => {
+  ack({ ok: <span class="k">true</span> });
+});</pre>
+</section>
+
+<!-- ============ 9 ============ -->
+<section class="chapter reveal" id="c9">
+  <span class="level mid">Middle</span>
+  <h2>9. Rooms &amp; namespaces</h2>
+  <p>A <b>room</b> is a named group of sockets on the server. A socket can join and leave rooms at any time. Sending to a room reaches <b>only its members</b>. Our app creates one room per chat room: <code>room:&lt;id&gt;</code>.</p>
+
+  <div class="demo">
+    <div class="demo-title">Play with rooms</div>
+    <div class="hint">1) Click the small <b>room buttons</b> under each person to join or leave. 2) Then press a <b>send</b> button to send to a room. Only members light up.</div>
+    <div class="users" id="roomUsers"></div>
+    <div class="controls">
+      <span>Send as <select id="roomFrom"></select> to</span>
+      <button class="btn small" data-send="General">#General</button>
+      <button class="btn small" data-send="Games" style="background:linear-gradient(135deg,var(--pink),var(--purple))">#Games</button>
+      <button class="btn small ghost" data-send="ALL">everyone (io.emit)</button>
+    </div>
+    <div class="caption" id="roomCap">Server code that runs: <code>io.to("General").emit("msg", ...)</code></div>
+  </div>
+
+  <h3>Namespaces</h3>
+  <p>A <b>namespace</b> is a bigger divider: a separate "channel" on the same connection, with its own events and its own rooms. Example: <code>/chat</code> and <code>/admin</code>. Your old version of this app used <code>io.of("/chat")</code>.</p>
+<pre><span class="c">// one TCP connection, two namespaces</span>
+<span class="k">const</span> chat  = io(<span class="s">"/chat"</span>);
+<span class="k">const</span> admin = io(<span class="s">"/admin"</span>);</pre>
+  <div class="callout tip"><p><b>Easy rule:</b> Namespace = <i>different feature</i> (chat, admin, game). Room = <i>different group of users</i> inside one feature.</p></div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section class="chapter reveal" id="c10">
+  <span class="level mid">Middle → Advanced</span>
+  <h2>10. Socket.IO packets &amp; architecture</h2>
+  <p>Socket.IO is two layers working together:</p>
+  <div class="layers" style="margin-bottom:18px">
+    <div class="layer active"><span class="n">2</span><div><b>Socket.IO</b><small>Events, rooms, namespaces, acks. The part you use.</small></div></div>
+    <div class="layer active"><span class="n">1</span><div><b>Engine.IO</b><small>The "engine": opens the connection, picks transport, upgrades, heartbeats, reconnect basics.</small></div></div>
+    <div class="layer"><span class="n">0</span><div><b>Transport: HTTP polling or WebSocket</b><small>Actual bytes on a TCP connection.</small></div></div>
+  </div>
+
+  <h3>What happens when you call <code>io()</code></h3>
+  <ol>
+    <li><b>Open</b>: client sends <code>GET /socket.io/?EIO=4&amp;transport=polling</code>. Server answers with a <b>session id (sid)</b> and settings like <code>pingInterval</code>.</li>
+    <li><b>Connect</b>: client sends a "connect" packet (with your <code>auth</code> token). Server middleware checks it, then accepts.</li>
+    <li><b>Upgrade</b>: client opens a WebSocket on the side with the same sid, tests it with a ping/probe, then switches over and stops polling.</li>
+    <li><b>Talk</b>: events flow as small text packets.</li>
+  </ol>
+
+  <h3>Packet format</h3>
+  <p>Every message is a short string. The first digit is the <b>Engine.IO</b> type, the second is the <b>Socket.IO</b> type, then comes the data (JSON).</p>
+  <div class="demo decoder">
+    <div class="demo-title">Packet builder</div>
+    <div class="controls" style="margin-top:0">
+      <input id="pkEvent" value="chat" style="width:130px" />
+      <input id="pkData" value="hello" style="width:150px" />
+      <select id="pkNs"><option value="">default namespace /</option><option value="/chat,">namespace /chat</option></select>
+      <select id="pkAck"><option value="">no ack</option><option value="7">with ack id 7</option></select>
+    </div>
+    <div class="out" id="pkOut"></div>
+    <div class="caption" id="pkExplain"></div>
+  </div>
+
+  <table>
+    <tr><th>Engine.IO digit</th><th>Meaning</th><th>Socket.IO digit</th><th>Meaning</th></tr>
+    <tr><td><code>0</code> open</td><td>Handshake (server → client)</td><td><code>0</code> CONNECT</td><td>Join a namespace</td></tr>
+    <tr><td><code>1</code> close</td><td>Close transport</td><td><code>1</code> DISCONNECT</td><td>Leave a namespace</td></tr>
+    <tr><td><code>2</code> ping</td><td>Heartbeat</td><td><code>2</code> EVENT</td><td>Your <code>emit()</code></td></tr>
+    <tr><td><code>3</code> pong</td><td>Heartbeat reply</td><td><code>3</code> ACK</td><td>Reply to an event</td></tr>
+    <tr><td><code>4</code> message</td><td>Carries a Socket.IO packet</td><td><code>4</code> CONNECT_ERROR</td><td>Refused (e.g. "Unauthorized")</td></tr>
+    <tr><td><code>5</code> upgrade</td><td>Switch to WebSocket</td><td><code>5</code> BINARY_EVENT</td><td>Event with files/bytes</td></tr>
+  </table>
+  <div class="callout"><p>So <code>42["chat","hello"]</code> reads: Engine.IO <b>4</b> (message) → Socket.IO <b>2</b> (event) → data <code>["chat","hello"]</code>.</p></div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section class="chapter reveal" id="c11">
+  <span class="level adv">Real-world</span>
+  <h2>11. Middleware in depth</h2>
+  <p><b>Middleware</b> is a function that runs <b>before</b> your real code. It can look at the request, add information, say "OK, continue" (<code>next()</code>) or say "STOP" (<code>next(new Error(...))</code>). Think of airport security: you must pass every gate in order, and one "no" ends the trip.</p>
+
+  <h3>Two kinds in Socket.IO</h3>
+  <table>
+    <tr><th>Kind</th><th>Code</th><th>Runs</th><th>Typical use</th></tr>
+    <tr><td><b>Connection</b> middleware</td><td><code>io.use((socket, next) =&gt; ...)</code></td><td><b>Once</b>, when a client connects</td><td>Check JWT, load the user, check origin</td></tr>
+    <tr><td><b>Packet</b> middleware</td><td><code>socket.use(([event, ...args], next) =&gt; ...)</code></td><td><b>Every event</b> a client sends</td><td>Rate limit, log, validate event names</td></tr>
+  </table>
+  <p>You can also attach middleware to one namespace: <code>io.of("/admin").use(...)</code>. Middleware runs in the order you write it.</p>
+
+  <div class="demo">
+    <div class="demo-title">Pass the gates</div>
+    <div class="hint">Pick a client. Watch it travel through three <code>io.use()</code> gates, in order.</div>
+    <div class="stage" id="mwStage" style="min-height:130px">
+      <div class="node" id="mwC"><span class="big">💻</span>Client</div>
+      <div class="node" id="mw1"><span class="big">📝</span>Gate 1<small>logger</small></div>
+      <div class="node" id="mw2"><span class="big">🔑</span>Gate 2<small>check JWT</small></div>
+      <div class="node" id="mw3"><span class="big">🚦</span>Gate 3<small>too many?</small></div>
+      <div class="node" id="mwS"><span class="big">🖥️</span>"connection"<small>your handler</small></div>
+    </div>
+    <div class="controls">
+      <button class="btn small" data-mw="ok">✅ Good token</button>
+      <button class="btn small ghost" data-mw="badtoken">🔑 Bad token</button>
+      <button class="btn small ghost" data-mw="flood">🚦 Flooding client</button>
+    </div>
+    <div class="caption" id="mwCap">Press a button.</div>
+  </div>
+
+  <h3>Our real middleware</h3>
+<pre><span class="c">// server/src/socket.js</span>
+io.use(<span class="k">async</span> (socket, next) => {
+  <span class="k">try</span> {
+    <span class="k">const</span> userId = verifyAccessToken(socket.handshake.auth.token);
+    <span class="k">const</span> user = <span class="k">await</span> User.findById(userId);
+    <span class="k">if</span> (!user) <span class="k">throw new</span> Error(<span class="s">"no user"</span>);
+    socket.data.user = user;   <span class="c">// handy storage for later code</span>
+    next();                    <span class="c">// ✅ let them in</span>
+  } <span class="k">catch</span> {
+    next(<span class="k">new</span> Error(<span class="s">"Unauthorized"</span>)); <span class="c">// ❌ refuse</span>
+  }
+});</pre>
+
+  <h3>Packet middleware: check every event</h3>
+<pre>io.on(<span class="s">"connection"</span>, (socket) => {
+  <span class="k">const</span> allowed = [<span class="s">"room:open"</span>, <span class="s">"room:close"</span>, <span class="s">"message:send"</span>];
+
+  socket.use(([event], next) => {
+    <span class="k">if</span> (!allowed.includes(event)) <span class="k">return</span> next(<span class="k">new</span> Error(<span class="s">"unknown event"</span>));
+    next();
+  });
+
+  <span class="c">// errors from packet middleware arrive here:</span>
+  socket.on(<span class="s">"error"</span>, (err) => socket.emit(<span class="s">"problem"</span>, err.message));
+});</pre>
+
+  <h3>Tips</h3>
+  <ul>
+    <li><b>Order matters.</b> Cheap checks first (rate limit by IP), expensive checks later (database).</li>
+    <li><b>Always call <code>next()</code> exactly once.</b> Forget it and the client hangs forever. Call it twice and weird bugs appear.</li>
+    <li><b>Send safe messages.</b> The error text goes to the client. Say "Unauthorized", not "JWT signature mismatch at line 42". You can add safe extra info with <code>err.data = {code: 401}</code>.</li>
+    <li><b>Store results in <code>socket.data</code></b> so later handlers don't repeat the work.</li>
+    <li>Middleware runs <b>only on the first connect</b> of each socket. Reconnecting runs it again (a new socket), which is good because the token is checked again.</li>
+  </ul>
+  <div class="callout warn"><p><b>Limit:</b> <code>io.use</code> checks the user <i>once</i>. If their token expires or they log out later, the open socket stays alive. For strong safety, also disconnect sockets on logout or check the token time yourself with <code>socket.use</code> or a timer.</p></div>
+</section>
+
+<!-- ============ 12 ============ -->
+<section class="chapter reveal" id="c12">
+  <span class="level adv">Real-world</span>
+  <h2>12. Sending binary data</h2>
+  <p>Chat text is easy. But you may also want to send <b>images, voice notes, files</b>. These are <b>binary data</b>: raw bytes, not text. Good news: Socket.IO sends binary directly, no tricks needed.</p>
+
+  <h3>What counts as binary?</h3>
+  <table>
+    <tr><th>Where</th><th>Types you can pass to <code>emit()</code></th></tr>
+    <tr><td>Browser</td><td><code>ArrayBuffer</code>, <code>Blob</code>, <code>File</code>, typed arrays (<code>Uint8Array</code>…)</td></tr>
+    <tr><td>Node.js</td><td><code>Buffer</code>, <code>ArrayBuffer</code>, typed arrays</td></tr>
+  </table>
+<pre><span class="c">// client: send a picked file</span>
+<span class="k">const</span> file = input.files[0];
+socket.emit(<span class="s">"upload"</span>, { name: file.name, type: file.type }, file);
+
+<span class="c">// server: it arrives as a Buffer</span>
+socket.on(<span class="s">"upload"</span>, (meta, buffer, ack) => {
+  console.log(meta.name, buffer.length, <span class="s">"bytes"</span>);
+  ack({ ok: <span class="k">true</span> });
+});</pre>
+
+  <h3>How it looks on the wire</h3>
+  <p>JSON cannot hold raw bytes. So Socket.IO splits the message into pieces:</p>
+  <ol>
+    <li>A <b>text frame</b> with the packet and a <b>placeholder</b> where the bytes belong. It starts with <code>5</code> (BINARY_EVENT, see chapter 10), then how many binary parts follow.</li>
+    <li>Then one <b>binary frame</b> for each part, sent right after.</li>
+  </ol>
+<pre><span class="c">// frame 1 (text):</span>
+51-["upload",{"name":"cat.png"},{"_placeholder":true,"num":0}]
+<span class="c">// frame 2 (binary): the raw bytes of the file</span>
+89 50 4E 47 0D 0A 1A 0A ...</pre>
+  <p>The receiving side glues them back, so your code just sees the object and the Buffer. Only <b>binary-capable transports</b> do this efficiently: WebSocket sends real binary frames. With HTTP polling the bytes are encoded as base64 text (bigger and slower).</p>
+
+  <div class="demo">
+    <div class="demo-title">How big is too big?</div>
+    <div class="hint">Drag the size. Socket.IO's server refuses a single message bigger than <code>maxHttpBufferSize</code>, default <b>1 MB</b> (1,000,000 bytes).</div>
+    <div class="controls" style="margin:0 0 12px">
+      <input type="range" id="binSize" min="10" max="3000" value="200" style="width:260px" />
+      <b id="binLabel"></b>
+      <select id="binMode" style="background:#070914;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px">
+        <option value="bin">Send as binary (Buffer)</option>
+        <option value="b64">Send as base64 text</option>
+      </select>
+    </div>
+    <div class="stage" id="binStage" style="min-height:120px">
+      <div class="node" id="binC"><span class="big">💻</span>Client</div>
+      <div class="node" id="binS"><span class="big">🖥️</span>Server<small id="binSs">limit 1 MB</small></div>
+    </div>
+    <div class="controls"><button class="btn small" id="binSend">Send file ▶</button></div>
+    <div class="caption" id="binCap"></div>
+  </div>
+
+  <h3>Rules of thumb</h3>
+  <ul>
+    <li><b>base64 makes data about 33% bigger</b> (3 bytes become 4 characters). Prefer real binary.</li>
+    <li><b>Small things</b> (voice note of a few seconds, a thumbnail, a drawing stroke): fine over the socket.</li>
+    <li><b>Big files</b> (photos, videos): do <b>not</b> push them through chat sockets. Upload with a normal HTTP request (<code>POST /upload</code>) or straight to cloud storage using a pre-signed link, then send only the <b>file's URL</b> over the socket. Everyone else downloads it from there.</li>
+    <li>You can change the limit: <code>new Server(httpServer, { maxHttpBufferSize: 5e6 })</code> (5 MB). Higher limits let attackers waste your memory, so keep it as low as you can.</li>
+    <li><b>Always check</b> the file type and size on the server. Never trust the name or type the client claims.</li>
+    <li>Use <code>socket.emit("x", data, {compress: true})</code> or <code>volatile</code> for data you can afford to lose (like live cursor positions).</li>
+  </ul>
+</section>
+
+<!-- ============ 13 ============ -->
+<section class="chapter reveal" id="c13">
+  <span class="level adv">Real-world</span>
+  <h2>13. CORS &amp; connect_error</h2>
+
+  <h3>Part A: CORS in plain words</h3>
+  <p>A browser has a safety rule called the <b>same-origin policy</b>: a page from <code>site-A.com</code> may not read answers from <code>site-B.com</code>. An <b>origin</b> is the trio <code>protocol + domain + port</code>. So <code>http://localhost:5173</code> and <code>http://localhost:5000</code> are <b>different origins</b>.</p>
+  <p><b>CORS</b> (Cross-Origin Resource Sharing) is how a server says "I allow <code>site-A.com</code> to read my answers". It does this by sending headers like <code>Access-Control-Allow-Origin</code>.</p>
+
+  <h3>How Socket.IO uses it</h3>
+<pre><span class="k">const</span> io = <span class="k">new</span> Server(httpServer, {
+  cors: {
+    origin: <span class="s">"https://chat.example.com"</span>, <span class="c">// ONLY your site, never "*" with login</span>
+    credentials: <span class="k">true</span>,               <span class="c">// allow cookies</span>
+  },
+});</pre>
+  <div class="callout tip"><p><b>Our trick:</b> in development, Vite forwards <code>/socket.io</code> to port 5000. The browser thinks everything is on port 5173, so it is <b>same-origin</b> and CORS is not even needed. In production, put the website and API behind one domain for the same effect.</p></div>
+
+  <div class="callout warn"><p><b>Big surprise:</b> browsers apply CORS to <b>HTTP requests</b> (polling), but <b>NOT to WebSocket</b> connections. Any website can try to open a WebSocket to your server. So the <code>cors</code> option alone does <b>not</b> protect the WebSocket. You must check the <code>Origin</code> header yourself. This attack is called <b>Cross-Site WebSocket Hijacking</b> and it is dangerous when login is based on cookies.</p></div>
+
+  <div class="demo">
+    <div class="demo-title">Can an evil site connect?</div>
+    <div class="hint">Choose where the page comes from, how it connects, and whether the server checks <code>Origin</code>.</div>
+    <div class="controls" style="margin:0 0 12px">
+      <label style="margin:0">Page:
+        <select id="orgPage"><option value="good">our site (chat.example.com)</option><option value="evil">evil site (evil.com)</option></select></label>
+      <label style="margin:0">Transport:
+        <select id="orgTransport"><option value="polling">HTTP polling</option><option value="ws">WebSocket</option></select></label>
+      <label style="margin:0">Server checks Origin:
+        <select id="orgCheck"><option value="no">no (only cors option)</option><option value="yes">yes (allowRequest)</option></select></label>
+    </div>
+    <div class="caption" id="orgOut"></div>
+  </div>
+<pre><span class="c">// Check the Origin yourself. This covers WebSocket too.</span>
+<span class="k">const</span> io = <span class="k">new</span> Server(httpServer, {
+  cors: { origin: <span class="s">"https://chat.example.com"</span> },
+  allowRequest: (req, callback) => {
+    <span class="k">const</span> ok = req.headers.origin === <span class="s">"https://chat.example.com"</span>;
+    callback(<span class="k">null</span>, ok);   <span class="c">// second argument: true = allow, false = refuse</span>
+  },
+});</pre>
+  <p>Our app is safe from this attack anyway, because it logs in with a token sent in <code>auth</code> (which an evil page does not have), not with cookies. Still, adding the origin check is cheap extra safety.</p>
+
+  <h3>Part B: connect_error and other client events</h3>
+  <p>Connections fail. Wi-Fi drops, tokens expire, servers restart. Your client must <b>listen</b> for the problems:</p>
+  <table>
+    <tr><th>Event</th><th>When</th></tr>
+    <tr><td><code>connect</code></td><td>Connected (also after every reconnect)</td></tr>
+    <tr><td><code>connect_error</code></td><td>Connecting failed: middleware said no, server is down, CORS block, timeout</td></tr>
+    <tr><td><code>disconnect</code></td><td>You were connected and now you are not. Comes with a <b>reason</b></td></tr>
+    <tr><td><code>socket.io.on("reconnect_attempt")</code></td><td>Auto-reconnect is trying again</td></tr>
+  </table>
+
+  <h3>The important flag: <code>socket.active</code></h3>
+  <ul>
+    <li><b><code>socket.active === true</code></b>: temporary problem. The library <b>will retry by itself</b>. Just show "reconnecting…".</li>
+    <li><b><code>socket.active === false</code></b>: the server <b>denied</b> you (middleware error). It will <b>not</b> retry. You must fix the problem and call <code>socket.connect()</code> yourself.</li>
+  </ul>
+
+  <div class="demo">
+    <div class="demo-title">What does the client see?</div>
+    <div class="hint">Pick a failure and read what your code receives, then what to do.</div>
+    <div class="controls" style="margin:0 0 12px" id="ceTabs"></div>
+    <div class="stage" id="ceStage" style="min-height:120px">
+      <div class="node" id="ceC"><span class="big">💻</span>Client</div>
+      <div class="node" id="ceS"><span class="big">🖥️</span>Server</div>
+    </div>
+    <div class="caption" id="ceOut"></div>
+  </div>
+
+  <h3>Disconnect reasons</h3>
+  <table>
+    <tr><th><code>reason</code></th><th>Meaning</th><th>Auto reconnect?</th></tr>
+    <tr><td><code>io server disconnect</code></td><td>Server called <code>socket.disconnect()</code> (for example kicked you)</td><td>❌ No. Call <code>socket.connect()</code> yourself</td></tr>
+    <tr><td><code>io client disconnect</code></td><td>You called <code>socket.disconnect()</code></td><td>❌ No</td></tr>
+    <tr><td><code>ping timeout</code></td><td>Server did not answer heartbeat in time</td><td>✅ Yes</td></tr>
+    <tr><td><code>transport close</code></td><td>Connection was lost (network, server restart)</td><td>✅ Yes</td></tr>
+    <tr><td><code>transport error</code></td><td>Connection hit an error</td><td>✅ Yes</td></tr>
+  </table>
+
+  <h3>A good handler for our app</h3>
+<pre>socket.on(<span class="s">"connect_error"</span>, <span class="k">async</span> (err) => {
+  <span class="k">if</span> (socket.active) {
+    showBanner(<span class="s">"Reconnecting…"</span>);              <span class="c">// library retries by itself</span>
+    <span class="k">return</span>;
+  }
+  <span class="c">// denied by the server's middleware</span>
+  <span class="k">if</span> (err.message === <span class="s">"Unauthorized"</span>) {
+    <span class="k">const</span> session = <span class="k">await</span> refreshSession(); <span class="c">// get a fresh access token</span>
+    <span class="k">if</span> (session) socket.connect();           <span class="c">// try again with the new token</span>
+    <span class="k">else</span> logout();                            <span class="c">// refresh failed: go to login</span>
+  }
+});
+
+socket.on(<span class="s">"disconnect"</span>, (reason) => {
+  <span class="k">if</span> (reason === <span class="s">"io server disconnect"</span>) socket.connect(); <span class="c">// manual retry</span>
+});</pre>
+  <div class="callout tip"><p>Our current <code>socket.js</code> sends the freshest token on each reconnect, but it does <b>not yet</b> handle <code>connect_error</code> with <code>"Unauthorized"</code>. The handler above is the missing piece.</p></div>
+</section>
+
+<!-- ============ 14 ============ -->
+<section class="chapter reveal" id="c14">
+  <span class="level adv">Real-world</span>
+  <h2>14. TLS &amp; wss://</h2>
+  <p>Everything we sent so far travels as <b>plain text</b>. Anyone on the path (café Wi-Fi, a router, your internet provider) can read it and even change it. <b>TLS</b> (Transport Layer Security) wraps your connection in a locked tunnel. It is the "S" in HTTPS, and the "S" in <code>wss://</code>.</p>
+  <table>
+    <tr><th>Plain</th><th>Secure</th><th>Default port</th></tr>
+    <tr><td><code>http://</code></td><td><code>https://</code></td><td>80 → 443</td></tr>
+    <tr><td><code>ws://</code></td><td><code>wss://</code></td><td>80 → 443</td></tr>
+  </table>
+  <p>Socket.IO over HTTPS automatically uses <code>wss://</code>. You do not change your Socket.IO code, only how the server is hosted.</p>
+
+  <h3>What TLS gives you</h3>
+  <div class="cards">
+    <div class="card"><div class="emoji">🔒</div><h4>Privacy</h4><p>Data is scrambled. A spy sees nonsense.</p></div>
+    <div class="card"><div class="emoji">🧾</div><h4>Integrity</h4><p>If someone changes even one bit on the way, it is detected.</p></div>
+    <div class="card"><div class="emoji">🪪</div><h4>Identity</h4><p>A <b>certificate</b> proves you are talking to the real <code>chat.example.com</code>, not a fake.</p></div>
+  </div>
+
+  <h3>The TLS handshake</h3>
+  <p>It happens right after the TCP handshake (chapter 4), before any HTTP or WebSocket data. The big idea: use <b>slow but clever</b> math (public/private keys) just once to agree on a secret key, then use a <b>fast</b> shared key for all the chat data.</p>
+
+  <div class="demo">
+    <div class="demo-title">TLS 1.3 handshake</div>
+    <div class="stage" id="tlsStage">
+      <div class="pipe" id="tlsPipe"></div>
+      <div class="node" id="tlsC"><span class="big">💻</span>Browser<small id="tlsCs">plain</small></div>
+      <div class="node" id="tlsS"><span class="big">🖥️</span>Server<small id="tlsSs">has certificate</small></div>
+    </div>
+    <div class="controls"><button class="btn small" id="tlsNext">Next step ▶</button><button class="btn small ghost" id="tlsReset">Reset</button></div>
+    <div class="caption" id="tlsCap">Press <b>Next step</b>.</div>
+  </div>
+
+  <h3>Spy test: ws:// vs wss://</h3>
+  <div class="demo">
+    <div class="demo-title">What does a spy on the café Wi-Fi see?</div>
+    <div class="controls" style="margin:0 0 12px">
+      <select id="tlsProto" style="background:#070914;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px">
+        <option value="ws">ws:// (no TLS)</option><option value="wss">wss:// (TLS)</option>
+      </select>
+      <button class="btn small" id="tlsSend">Send login message</button>
+    </div>
+    <div class="stage" id="spyStage" style="min-height:120px">
+      <div class="node" id="spyC"><span class="big">💻</span>You</div>
+      <div class="node" id="spyEye" style="border-color:var(--red)"><span class="big">🕵️</span>Spy<small>reads the wire</small></div>
+      <div class="node" id="spyS"><span class="big">🖥️</span>Server</div>
+    </div>
+    <pre id="spyOut" style="min-height:60px">The spy sees: (nothing yet)</pre>
+  </div>
+
+  <h3>Certificates in one minute</h3>
+  <ul>
+    <li>A <b>certificate</b> says "this public key belongs to <code>chat.example.com</code>" and is <b>signed</b> by a <b>Certificate Authority (CA)</b> that your browser already trusts.</li>
+    <li>Free ones come from <b>Let's Encrypt</b> and renew automatically (every ~60–90 days).</li>
+    <li>Wrong domain, expired, or self-signed certificates make the browser show a red warning, and <code>wss://</code> connections <b>fail</b>.</li>
+    <li>For local development you can use <code>http://localhost</code> without TLS.</li>
+  </ul>
+
+  <h3>Where to do TLS</h3>
+  <p><b>Best practice:</b> let a <b>reverse proxy</b> (nginx, Caddy, a cloud load balancer) handle the certificate and talk plain HTTP to Node on a private network. This is called <b>TLS termination</b>. It is simpler and faster than doing it inside Node.</p>
+<pre><span class="c"># nginx: HTTPS in front, forwards Socket.IO to Node on port 5000</span>
+server {
+  listen 443 ssl;
+  server_name chat.example.com;
+  ssl_certificate     /etc/letsencrypt/live/chat.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/chat.example.com/privkey.pem;
+
+  location /socket.io/ {
+    proxy_pass http://127.0.0.1:5000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;     <span class="c"># needed for WebSocket</span>
+    proxy_set_header Connection "upgrade";      <span class="c"># needed for WebSocket</span>
+    proxy_set_header Host $host;
+    proxy_read_timeout 120s;                    <span class="c"># longer than the ping interval</span>
+  }
+}</pre>
+
+  <h3>Production checklist for our app</h3>
+  <ul>
+    <li>Serve the React site and the API on <b>HTTPS</b> only. Redirect port 80 to 443.</li>
+    <li>Set <code>NODE_ENV=production</code>. Our refresh-token cookie then gets the <code>Secure</code> flag, so the browser never sends it over plain HTTP.</li>
+    <li>Put <code>app.set("trust proxy", 1)</code> in Express, so rate limiting sees real client IPs behind the proxy.</li>
+    <li><b>Mixed content:</b> an HTTPS page is <b>not allowed</b> to open a <code>ws://</code> socket. The browser blocks it. Use <code>wss://</code> (or a relative <code>io()</code> that follows the page).</li>
+    <li>Add the <code>Strict-Transport-Security</code> header (Helmet already does) so browsers refuse to use HTTP for your site.</li>
+  </ul>
+</section>
+
+
+<!-- ============ 15 ============ -->
+<section class="chapter reveal" id="c15">
+  <span class="level adv">Real-world</span>
+  <h2>15. Server options, one by one</h2>
+  <p>When you create a Socket.IO server you can pass an <b>options object</b>. Think of it as the <b>settings panel</b> of your server. If you pass nothing, safe defaults are used and everything still works. You change an option only when you have a reason. This chapter explains <b>every option that matters</b>: what it is, its default, how to use it, and when you need it.</p>
+
+  <h3>Three ways to create the server</h3>
+<pre><span class="c">// 1) Attach to an existing HTTP server (what our app does, shares the port with Express)</span>
+<span class="k">const</span> httpServer = http.createServer(app);
+<span class="k">const</span> io = <span class="k">new</span> Server(httpServer, { <span class="c">/* options */</span> });
+
+<span class="c">// 2) Let Socket.IO make its own server on a port</span>
+<span class="k">const</span> io = <span class="k">new</span> Server(<span class="s">5000</span>, { <span class="c">/* options */</span> });
+
+<span class="c">// 3) No arguments, attach later</span>
+<span class="k">const</span> io = <span class="k">new</span> Server({ <span class="c">/* options */</span> });
+io.attach(httpServer);</pre>
+
+  <div class="callout"><p><b>What our app uses today:</b> only <code>cors</code>. Every other setting is a default. At the end of this chapter there is a builder that gives you a ready-made options object for your situation.</p></div>
+
+  <div class="demo">
+    <div class="demo-title">Quick map: which option solves which problem?</div>
+    <div class="hint">Click a problem to jump to the right option.</div>
+    <div class="controls" style="margin:0" id="optMap"></div>
+  </div>
+
+  <!-- ====================== GROUP 1 ====================== -->
+  <h3>Group 1: Where and how clients connect</h3>
+
+  <div class="opt" id="opt-path">
+    <div class="opt-head"><code>path</code><span class="def">default: "/socket.io"</span></div>
+    <p><b>What it is:</b> the URL path where Socket.IO listens. Every handshake and polling request goes to <code>https://yourhost<b>/socket.io/</b>?EIO=4&amp;...</code> (you saw this URL at the start of our journey).</p>
+<pre><span class="c">// server</span>
+<span class="k">new</span> Server(httpServer, { path: <span class="s">"/chat-socket"</span> });
+<span class="c">// client: must match exactly</span>
+io({ path: <span class="s">"/chat-socket"</span> });</pre>
+    <p><b>Use cases</b></p>
+    <ul>
+      <li>One domain hosts <b>two</b> Socket.IO apps (for example <code>/support-socket</code> and <code>/game-socket</code>).</li>
+      <li>A reverse proxy only forwards certain paths (the nginx <code>location</code> must match the path).</li>
+      <li>You want to hide that you use Socket.IO (minor, not real security).</li>
+    </ul>
+    <div class="callout warn"><p><b>Watch out:</b> if client and server paths differ, you get 404 errors and <code>connect_error</code> forever. The Vite proxy in our <code>vite.config.js</code> also forwards <code>/socket.io</code>, so change it there too.</p></div>
+  </div>
+
+  <div class="opt" id="opt-serveClient">
+    <div class="opt-head"><code>serveClient</code><span class="def">default: true</span></div>
+    <p><b>What it is:</b> when <code>true</code>, the server also hands out the browser library at <code>/socket.io/socket.io.js</code>, so a plain HTML page can use <code>&lt;script src="/socket.io/socket.io.js"&gt;</code>.</p>
+<pre><span class="k">new</span> Server(httpServer, { serveClient: <span class="k">false</span> });</pre>
+    <p><b>Use cases</b></p>
+    <ul>
+      <li><b>Set <code>false</code></b> when your frontend is built with a bundler (React + Vite, like ours) and imports <code>socket.io-client</code> itself. Less surface and nothing extra to serve.</li>
+      <li><b>Keep <code>true</code></b> for quick demos with a simple HTML file and no build step.</li>
+    </ul>
+  </div>
+
+  <div class="opt" id="opt-addTrailingSlash">
+    <div class="opt-head"><code>addTrailingSlash</code><span class="def">default: true</span></div>
+    <p><b>What it is:</b> whether the path is <code>/socket.io/</code> (with a final slash) or <code>/socket.io</code>. Only matters for picky proxies.</p>
+<pre><span class="k">new</span> Server(httpServer, { addTrailingSlash: <span class="k">false</span> });</pre>
+    <p><b>Use case:</b> a proxy or load balancer rule matches <code>/socket.io</code> exactly and rejects the slash version. Most people never touch this.</p>
+  </div>
+
+  <!-- ====================== GROUP 2 ====================== -->
+  <h3>Group 2: Transports (how the bytes travel)</h3>
+
+  <div class="opt" id="opt-transports">
+    <div class="opt-head"><code>transports</code><span class="def">default: ["polling", "websocket"]</span></div>
+    <p><b>What it is:</b> the list of ways a client may connect. By default a client <b>starts with HTTP polling</b> (works almost everywhere) and then <b>upgrades</b> to WebSocket.</p>
+<pre><span class="k">new</span> Server(httpServer, { transports: [<span class="s">"websocket"</span>] });
+<span class="c">// the client must agree, otherwise it starts with polling and is refused:</span>
+io({ transports: [<span class="s">"websocket"</span>] });</pre>
+    <p><b>Use cases</b></p>
+    <ul>
+      <li><b>Default (both):</b> best for public websites. Works behind strict company firewalls, then gets the speed of WebSocket.</li>
+      <li><b><code>["websocket"]</code> only:</b> faster first connection (no polling round-trips), and <b>much simpler with many servers</b>, because without polling you don't need sticky sessions (chapter 18). Great for apps whose users are on normal networks, like mobile apps.</li>
+      <li><b><code>["polling"]</code> only:</b> very rare, for environments that block WebSocket completely.</li>
+      <li>An experimental <code>"webtransport"</code> exists too (works over HTTP/3), for advanced use.</li>
+    </ul>
+    <div class="callout warn"><p><b>Watch out:</b> WebSocket-only fails on networks that block WebSocket (some corporate proxies). Decide based on who your users are.</p></div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-title">Transports playground</div>
+    <div class="hint">Choose the server setting and the user's network. See what happens.</div>
+    <div class="controls" style="margin:0 0 12px">
+      <label style="margin:0">Server <code>transports</code>:
+        <select id="trServer"><option value="both">["polling","websocket"]</option><option value="ws">["websocket"]</option><option value="poll">["polling"]</option></select></label>
+      <label style="margin:0">User's network:
+        <select id="trNet"><option value="open">normal home Wi-Fi</option><option value="nows">office proxy that blocks WebSocket</option></select></label>
+    </div>
+    <div class="stage" id="trStage" style="min-height:130px">
+      <div class="node" id="trC"><span class="big">💻</span>Client<small id="trCs">idle</small></div>
+      <div class="node" id="trS"><span class="big">🖥️</span>Server</div>
+    </div>
+    <div class="controls"><button class="btn small" id="trGo">Connect ▶</button></div>
+    <div class="caption" id="trCap">Press <b>Connect</b>.</div>
+  </div>
+
+  <div class="opt" id="opt-allowUpgrades">
+    <div class="opt-head"><code>allowUpgrades</code><span class="def">default: true</span></div>
+    <p><b>What it is:</b> allows a polling connection to upgrade to WebSocket. If <code>false</code>, a client that started with polling stays on polling forever.</p>
+<pre><span class="k">new</span> Server(httpServer, { allowUpgrades: <span class="k">false</span> });</pre>
+    <p><b>Use case:</b> debugging transport problems (force polling to see if the upgrade is what breaks), or deliberately keeping everything on plain HTTP. In normal production leave it on.</p>
+  </div>
+
+  <div class="opt" id="opt-upgradeTimeout">
+    <div class="opt-head"><code>upgradeTimeout</code><span class="def">default: 10000 (ms)</span></div>
+    <p><b>What it is:</b> how long the server waits for the upgrade to finish (the probe ping/pong on the new WebSocket). If it takes longer, the upgrade is cancelled and the client stays on polling.</p>
+<pre><span class="k">new</span> Server(httpServer, { upgradeTimeout: <span class="s">20000</span> });</pre>
+    <p><b>Use case:</b> users on very slow or high-latency networks (satellite, bad mobile signal) keep failing to upgrade, so give them more time. Rarely needed.</p>
+  </div>
+
+  <div class="opt" id="opt-wsEngine">
+    <div class="opt-head"><code>wsEngine</code><span class="def">default: "ws"</span></div>
+    <p><b>What it is:</b> which library handles the raw WebSocket. The default is the popular <code>ws</code> package. You may swap in a faster one such as <code>eiows</code> (native code) or <code>uWebSockets.js</code>.</p>
+<pre><span class="k">new</span> Server(httpServer, { wsEngine: <span class="k">require</span>(<span class="s">"eiows"</span>).Server });</pre>
+    <p><b>Use case:</b> very high traffic (tens of thousands of connections per server) where CPU is the bottleneck. For a normal chat app this is premature optimisation.</p>
+  </div>
+
+  <!-- ====================== GROUP 3 ====================== -->
+  <h3>Group 3: Heartbeat and timeouts</h3>
+
+  <div class="opt" id="opt-pingInterval">
+    <div class="opt-head"><code>pingInterval</code> and <code>pingTimeout</code><span class="def">defaults: 25000 ms and 20000 ms</span></div>
+    <p><b>What they are:</b> the heartbeat from chapter 17. Every <code>pingInterval</code> the server sends a <b>ping</b>. The client must answer with <b>pong</b> within <code>pingTimeout</code>. If not, the socket is declared dead.</p>
+    <p>So a silently dead connection is noticed in about <b>pingInterval + pingTimeout</b> (45 seconds by default).</p>
+<pre><span class="k">new</span> Server(httpServer, {
+  pingInterval: <span class="s">10000</span>,  <span class="c">// ping every 10 s</span>
+  pingTimeout:  <span class="s">5000</span>,   <span class="c">// wait 5 s for pong</span>
+});</pre>
+    <p>The client reads these two numbers from the handshake, so you only set them on the server.</p>
+    <p><b>Use cases</b></p>
+    <ul>
+      <li><b>Shorter values</b> (10 s + 5 s): games, live auctions, presence ("online now" dots) where you must notice a disconnect fast. Cost: more tiny packets and more battery use.</li>
+      <li><b>Longer values</b>: huge numbers of idle clients where you want less traffic, or mobile apps that sleep in the background and would otherwise be dropped too often.</li>
+      <li><b>Behind a proxy:</b> the proxy's idle timeout (nginx <code>proxy_read_timeout</code>, default 60 s) must be <b>longer than <code>pingInterval</code></b>, or the proxy cuts quiet connections.</li>
+    </ul>
+  </div>
+
+  <div class="demo">
+    <div class="demo-title">Heartbeat calculator</div>
+    <div class="hint">Move the sliders. See how fast dead connections are found and how much ping traffic you create.</div>
+    <div class="controls" style="margin:0 0 8px">
+      <label style="margin:0">pingInterval: <b id="hcIntLabel"></b><br><input type="range" id="hcInt" min="2" max="60" value="25" style="width:230px" /></label>
+      <label style="margin:0">pingTimeout: <b id="hcToLabel"></b><br><input type="range" id="hcTo" min="1" max="60" value="20" style="width:230px" /></label>
+      <label style="margin:0">Connected users: <b id="hcUsersLabel"></b><br><input type="range" id="hcUsers" min="100" max="100000" step="100" value="10000" style="width:230px" /></label>
+    </div>
+    <div class="caption" id="hcOut"></div>
+  </div>
+
+  <div class="opt" id="opt-connectTimeout">
+    <div class="opt-head"><code>connectTimeout</code><span class="def">default: 45000 (ms)</span></div>
+    <p><b>What it is:</b> after the transport is open, the client must finish joining a <b>namespace</b> (this is when your <code>io.use</code> middleware runs). If that does not happen within this time, the server drops the connection.</p>
+<pre><span class="k">new</span> Server(httpServer, { connectTimeout: <span class="s">10000</span> });</pre>
+    <p><b>Use case:</b> protect the server from clients that open a connection and then sit there doing nothing (a cheap way to waste your resources). Lower it to 5–10 s. If your auth middleware calls a slow database, don't set it too low.</p>
+  </div>
+
+  <!-- ====================== GROUP 4 ====================== -->
+  <h3>Group 4: Message size and compression</h3>
+
+  <div class="opt" id="opt-maxHttpBufferSize">
+    <div class="opt-head"><code>maxHttpBufferSize</code><span class="def">default: 1e6 (1 MB)</span></div>
+    <p><b>What it is:</b> the biggest <b>single message</b> the server accepts, in bytes. A bigger message makes the server close that connection (chapter 12).</p>
+<pre><span class="k">new</span> Server(httpServer, { maxHttpBufferSize: <span class="s">1e5</span> });  <span class="c">// 100 KB</span></pre>
+    <p><b>Use cases</b></p>
+    <ul>
+      <li><b>Lower it</b> for text chat. Our messages max 1000 characters, so 100 KB is generous. A small limit stops attackers from making you buffer huge messages.</li>
+      <li><b>Raise it</b> (for example <code>5e6</code>) only when you truly send small files or images through the socket. For big files use HTTP uploads.</li>
+    </ul>
+  </div>
+
+  <div class="opt" id="opt-perMessageDeflate">
+    <div class="opt-head"><code>perMessageDeflate</code><span class="def">default: false (off)</span></div>
+    <p><b>What it is:</b> compresses every WebSocket message (zlib, like making a zip). Smaller on the wire, but it costs <b>CPU and memory for every connection</b>, which can hurt badly with many users.</p>
+<pre><span class="k">new</span> Server(httpServer, {
+  perMessageDeflate: { threshold: <span class="s">1024</span> },  <span class="c">// only compress messages over 1 KB</span>
+});</pre>
+    <p><b>Use cases:</b> large text payloads (big JSON lists) and customers on slow or expensive mobile data. <b>Don't enable</b> for tiny chat messages: compressing 40 bytes saves nothing.</p>
+    <p>You can also decide per message: <code>socket.compress(false).emit(...)</code>.</p>
+  </div>
+
+  <div class="opt" id="opt-httpCompression">
+    <div class="opt-head"><code>httpCompression</code><span class="def">default: true</span></div>
+    <p><b>What it is:</b> same idea as above, but for <b>HTTP polling</b> responses. On by default, and only compresses larger responses.</p>
+<pre><span class="k">new</span> Server(httpServer, { httpCompression: { threshold: <span class="s">2048</span> } });</pre>
+    <p><b>Use case:</b> usually leave it. Turn it off (<code>false</code>) if CPU is tight and most users are on WebSocket anyway.</p>
+  </div>
+
+  <!-- ====================== GROUP 5 ====================== -->
+  <h3>Group 5: Origin, cookies and security</h3>
+
+  <div class="opt" id="opt-cors">
+    <div class="opt-head"><code>cors</code><span class="def">default: none (no CORS headers)</span></div>
+    <p><b>What it is:</b> tells browsers which other websites may use your server through <b>HTTP polling</b> (chapter 13). It takes the same settings as the Express <code>cors</code> package.</p>
+<pre><span class="k">new</span> Server(httpServer, {
+  cors: {
+    origin: [<span class="s">"https://chat.example.com"</span>, <span class="s">"https://admin.example.com"</span>], <span class="c">// allowed sites</span>
+    methods: [<span class="s">"GET"</span>, <span class="s">"POST"</span>],
+    credentials: <span class="k">true</span>,                  <span class="c">// allow cookies</span>
+  },
+});</pre>
+    <p><b>Use cases</b></p>
+    <ul>
+      <li>Website and server on <b>different domains or ports</b> (<code>app.example.com</code> and <code>api.example.com</code>).</li>
+      <li>Not needed when both are on the same origin (our Vite proxy setup).</li>
+    </ul>
+    <div class="callout warn"><p><b>Never</b> use <code>origin: "*"</code> together with <code>credentials: true</code> or on a logged-in app. And remember: <code>cors</code> does <b>not</b> stop WebSocket connections. Pair it with <code>allowRequest</code>.</p></div>
+  </div>
+
+  <div class="opt" id="opt-allowRequest">
+    <div class="opt-head"><code>allowRequest</code><span class="def">default: none (everyone is allowed)</span></div>
+    <p><b>What it is:</b> a function that runs on <b>every handshake</b>, before anything else, and can refuse. It receives the raw HTTP request, so you can read headers, cookies and the IP address.</p>
+<pre><span class="k">new</span> Server(httpServer, {
+  allowRequest: (req, callback) => {
+    <span class="k">const</span> okOrigin = req.headers.origin === <span class="s">"https://chat.example.com"</span>;
+    callback(<span class="k">null</span>, okOrigin);   <span class="c">// (error, allowed?)  false = refused with HTTP 403</span>
+  },
+});</pre>
+    <p><b>Use cases</b></p>
+    <ul>
+      <li><b>Check the <code>Origin</code></b> header, which covers WebSocket too (stops cross-site hijacking).</li>
+      <li><b>Block bad IPs</b> or a country list before spending any more resources.</li>
+      <li><b>Cheap early auth</b> by checking an API key in a header.</li>
+    </ul>
+    <p><b>Difference from <code>io.use</code>:</b> <code>allowRequest</code> runs at the <b>very first HTTP request</b> and sees raw HTTP. <code>io.use</code> runs after the connection exists and sees the Socket.IO handshake (including <code>auth</code>). Use <code>allowRequest</code> for network-level checks and <code>io.use</code> for login.</p>
+  </div>
+
+  <div class="opt" id="opt-cookie">
+    <div class="opt-head"><code>cookie</code><span class="def">default: false (no cookie)</span></div>
+    <p><b>What it is:</b> makes the server set a small cookie (named <code>io</code> by default) holding the session id. Some load balancers use it to <b>send the same client to the same server</b> (sticky sessions, chapter 18).</p>
+<pre><span class="k">new</span> Server(httpServer, {
+  cookie: { name: <span class="s">"chat_sid"</span>, httpOnly: <span class="k">true</span>, sameSite: <span class="s">"strict"</span>, secure: <span class="k">true</span> },
+});</pre>
+    <p><b>Use case:</b> several servers behind a load balancer with <b>polling enabled</b>. If you use WebSocket-only, or the balancer sticks clients by IP, you don't need it. If you do turn it on, add the safe flags shown above.</p>
+  </div>
+
+  <!-- ====================== GROUP 6 ====================== -->
+  <h3>Group 6: Scaling and recovery</h3>
+
+  <div class="opt" id="opt-adapter">
+    <div class="opt-head"><code>adapter</code><span class="def">default: in-memory adapter</span></div>
+    <p><b>What it is:</b> the part that knows <b>who is in which room</b> and how to broadcast. The default lives in one server's memory. To make several servers act as one, replace it (chapter 18).</p>
+<pre><span class="k">const</span> { createAdapter } = <span class="k">require</span>(<span class="s">"@socket.io/redis-adapter"</span>);
+<span class="k">new</span> Server(httpServer, { adapter: createAdapter(pubClient, subClient) });</pre>
+    <p><b>Use cases:</b> two or more Node processes (many servers, or Node's cluster mode). A single server needs nothing.</p>
+  </div>
+
+  <div class="opt" id="opt-connectionStateRecovery">
+    <div class="opt-head"><code>connectionStateRecovery</code><span class="def">default: off</span></div>
+    <p><b>What it is:</b> after a <b>short disconnect</b> (tunnel, Wi-Fi switch), the server keeps the socket's id, its <b>rooms</b>, and the <b>events it missed</b>, and gives them back when the client reconnects. Without it, the new connection is a brand-new socket with no rooms (chapter 17).</p>
+<pre><span class="c">// server</span>
+<span class="k">new</span> Server(httpServer, {
+  connectionStateRecovery: {
+    maxDisconnectionDuration: <span class="s">2 * 60 * 1000</span>,  <span class="c">// remember for 2 minutes</span>
+    skipMiddlewares: <span class="k">true</span>,                     <span class="c">// don't re-run auth middleware on recovery</span>
+  },
+});
+
+<span class="c">// client: find out if recovery worked</span>
+socket.on(<span class="s">"connect"</span>, () => {
+  <span class="k">if</span> (socket.recovered) {
+    <span class="c">// same id, rooms and missed events are back: nothing else to do</span>
+  } <span class="k">else</span> {
+    <span class="c">// new session: join rooms again and reload data</span>
+  }
+});</pre>
+    <p><b>Use cases:</b> chat and live feeds where missing a few messages is annoying. In our app it would replace some of the manual re-join logic, though we'd still keep the history reload as a fallback because recovery only covers short gaps.</p>
+    <div class="callout warn"><p><b>Watch out:</b> events are kept in memory, so it uses RAM. Recovery fails after a server restart or after the time limit. With many servers you need an adapter that supports it (such as the Redis <b>Streams</b> adapter).</p></div>
+  </div>
+
+  <div class="opt" id="opt-cleanupEmptyChildNamespaces">
+    <div class="opt-head"><code>cleanupEmptyChildNamespaces</code><span class="def">default: false</span></div>
+    <p><b>What it is:</b> only for <b>dynamic namespaces</b> (<code>io.of(/^\/workspace-\d+$/)</code>). When <code>true</code>, a namespace created on the fly is deleted once its last client leaves, freeing memory.</p>
+<pre><span class="k">new</span> Server(httpServer, { cleanupEmptyChildNamespaces: <span class="k">true</span> });</pre>
+    <p><b>Use case:</b> a multi-tenant app creating a namespace per company or per workspace. Not needed if you use fixed namespaces or only rooms (like us).</p>
+  </div>
+
+  <!-- ====================== GROUP 7 ====================== -->
+  <h3>Group 7: Compatibility and wire format</h3>
+
+  <div class="opt" id="opt-allowEIO3">
+    <div class="opt-head"><code>allowEIO3</code><span class="def">default: false</span></div>
+    <p><b>What it is:</b> lets very old clients (Socket.IO v2, Engine.IO protocol 3) connect to a new v4 server.</p>
+<pre><span class="k">new</span> Server(httpServer, { allowEIO3: <span class="k">true</span> });</pre>
+    <p><b>Use case:</b> you upgraded the server but old mobile apps still in users' hands use v2. Turn on temporarily while they update, then remove it. Old versions have known weaknesses.</p>
+  </div>
+
+  <div class="opt" id="opt-parser">
+    <div class="opt-head"><code>parser</code><span class="def">default: built-in JSON parser</span></div>
+    <p><b>What it is:</b> how packets are turned into bytes and back (chapters 10 and 12). You can plug in another one, such as <b>MessagePack</b>, which is smaller and faster than JSON for some data.</p>
+<pre><span class="k">const</span> parser = <span class="k">require</span>(<span class="s">"socket.io-msgpack-parser"</span>);
+<span class="k">new</span> Server(httpServer, { parser });
+<span class="c">// the client must use the same parser:</span>
+io({ parser });</pre>
+    <p><b>Use case:</b> lots of numeric or binary data (games, sensors, drawing apps) where JSON is too big. Everything on both sides must match, so decide early.</p>
+  </div>
+
+  <h3>Options on the other side: the client</h3>
+  <p>The browser's <code>io(url, options)</code> has its own options. These are the important ones:</p>
+  <table>
+    <tr><th>Client option</th><th>What it does</th></tr>
+    <tr><td><code>path</code></td><td>Must match the server's <code>path</code>.</td></tr>
+    <tr><td><code>transports</code></td><td>Which transports to try, such as <code>["websocket"]</code>.</td></tr>
+    <tr><td><code>auth</code></td><td>Data for the server's middleware, such as <code>{token}</code>. A function form runs again on every reconnect (our app does this).</td></tr>
+    <tr><td><code>reconnection</code></td><td><code>true</code> by default. Set <code>false</code> to never auto-reconnect.</td></tr>
+    <tr><td><code>reconnectionAttempts</code></td><td>How many tries before giving up (default: unlimited).</td></tr>
+    <tr><td><code>reconnectionDelay</code> / <code>reconnectionDelayMax</code></td><td>First wait (1000 ms) and the cap (5000 ms) of the backoff. <code>randomizationFactor</code> adds jitter.</td></tr>
+    <tr><td><code>timeout</code></td><td>How long one connect attempt may take (default 20000 ms).</td></tr>
+    <tr><td><code>autoConnect</code></td><td><code>false</code> = create the socket but call <code>socket.connect()</code> yourself later (useful after login).</td></tr>
+    <tr><td><code>withCredentials</code></td><td>Send cookies on cross-origin polling requests (needs server <code>cors.credentials</code>).</td></tr>
+    <tr><td><code>query</code></td><td>Extra URL parameters. Avoid it for secrets, because URLs get logged. Use <code>auth</code>.</td></tr>
+  </table>
+
+  <!-- ====================== BUILDER ====================== -->
+  <h3>Options builder: pick your situation</h3>
+  <div class="demo">
+    <div class="demo-title">Get a ready-made options object</div>
+    <div class="hint">Choose a scenario. The code below changes, with the reason for each line.</div>
+    <div class="controls" style="margin:0 0 12px" id="presetTabs"></div>
+    <pre id="presetCode" style="min-height:160px"></pre>
+    <div class="caption" id="presetWhy"></div>
+  </div>
+
+  <h3>Cheat sheet</h3>
+  <table>
+    <tr><th>If you want to…</th><th>Use</th></tr>
+    <tr><td>Allow my website from another domain</td><td><code>cors</code></td></tr>
+    <tr><td>Block other sites from opening WebSockets</td><td><code>allowRequest</code></td></tr>
+    <tr><td>Stop huge messages</td><td><code>maxHttpBufferSize</code></td></tr>
+    <tr><td>Notice dead users faster</td><td><code>pingInterval</code>, <code>pingTimeout</code></td></tr>
+    <tr><td>Drop connections that never finish connecting</td><td><code>connectTimeout</code></td></tr>
+    <tr><td>Skip polling, make connect faster</td><td><code>transports: ["websocket"]</code> (on both sides)</td></tr>
+    <tr><td>Run many servers</td><td><code>adapter</code> (+ <code>cookie</code> if polling and sticky sessions)</td></tr>
+    <tr><td>Keep rooms and missed events after a short drop</td><td><code>connectionStateRecovery</code></td></tr>
+    <tr><td>Save bandwidth on large messages</td><td><code>perMessageDeflate</code> or <code>parser</code></td></tr>
+    <tr><td>Serve Socket.IO under a custom URL</td><td><code>path</code> (both sides)</td></tr>
+    <tr><td>Don't serve the browser file</td><td><code>serveClient: false</code></td></tr>
+  </table>
+</section>
+
+
+<!-- ============ 16 ============ -->
+<section class="chapter reveal" id="c16">
+  <span class="level mid">Middle → Advanced</span>
+  <h2>16. Server instance vs socket instance</h2>
+  <p>This is the most confusing part for beginners, because the word <b>"socket"</b> is used in many places. Let's give every object a clear name. There are really <b>three</b> different objects:</p>
+
+  <div class="cards">
+    <div class="card"><div class="emoji">🏢</div><h4>1. Server instance</h4><p>Called <code>io</code> in our code. <b>One per server program.</b> It is the whole building: it knows every client, every room, every namespace.</p></div>
+    <div class="card"><div class="emoji">🧑‍💼</div><h4>2. Socket instance (server side)</h4><p>Called <code>socket</code> inside <code>io.on("connection", (socket) =&gt; ...)</code>. <b>One per connected client.</b> It is that one person's phone line.</p></div>
+    <div class="card"><div class="emoji">📱</div><h4>3. Socket instance (client side)</h4><p>Called <code>socket</code> in the browser: <code>const socket = io()</code>. It is the <b>other end</b> of the same phone line.</p></div>
+  </div>
+
+  <div class="callout"><p><b>Easy picture:</b> A <b>call centre</b>. The call centre building is <code>io</code> (one). Every customer who calls gets a <b>phone line</b> with the agent: the agent's side is the <b>server-side socket</b>, the customer's side is the <b>client-side socket</b>. The building can announce something over the loudspeaker to everyone (<code>io.emit</code>), or an agent can talk on just one line (<code>socket.emit</code>).</p></div>
+
+  <pre><span class="c">// SERVER</span>
+<span class="k">const</span> io = <span class="k">new</span> Server(httpServer);          <span class="c">// 🏢 the SERVER instance (created once)</span>
+
+io.on(<span class="s">"connection"</span>, (socket) => {            <span class="c">// 🧑‍💼 a SOCKET instance (created for each client)</span>
+  console.log(socket.id, <span class="s">"connected"</span>);
+});
+
+<span class="c">// CLIENT (browser)</span>
+<span class="k">const</span> socket = io();                         <span class="c">// 📱 the client's own socket instance</span></pre>
+
+  <table>
+    <tr><th></th><th>Server instance <code>io</code></th><th>Server-side <code>socket</code></th><th>Client-side <code>socket</code></th></tr>
+    <tr><td><b>Lives in</b></td><td>Node.js</td><td>Node.js</td><td>The browser (or another Node app)</td></tr>
+    <tr><td><b>How many</b></td><td>1 per server program</td><td>1 per connected client (per namespace)</td><td>1 per <code>io()</code> call</td></tr>
+    <tr><td><b>Created</b></td><td>When you write <code>new Server()</code></td><td>Automatically, when a client connects</td><td>When you call <code>io()</code></td></tr>
+    <tr><td><b>Destroyed</b></td><td>When the program stops or <code>io.close()</code></td><td>When that client disconnects</td><td>When the page closes or <code>socket.disconnect()</code> (and it can come back)</td></tr>
+    <tr><td><b>Speaks to</b></td><td>Many clients at once</td><td>That one client</td><td>The server</td></tr>
+    <tr><td><b>Holds</b></td><td>Namespaces, rooms, all sockets</td><td>id, rooms, handshake, your <code>data</code></td><td>id, connected?, auth, Manager</td></tr>
+  </table>
+
+  <!-- ===================== SERVER INSTANCE ===================== -->
+  <h3>The server instance (<code>io</code>) in detail</h3>
+  <p>You create it <b>once</b> when the program starts. Everything else grows from it.</p>
+
+  <table>
+    <tr><th>What you write</th><th>What it does</th><th>Example use</th></tr>
+    <tr><td><code>io.on("connection", fn)</code></td><td>Runs <code>fn</code> for <b>each new client</b>, giving you its socket</td><td>Register all per-client event handlers here</td></tr>
+    <tr><td><code>io.use(fn)</code></td><td>Middleware for every new connection</td><td>Check the JWT (chapter 11)</td></tr>
+    <tr><td><code>io.emit("x", data)</code></td><td>Send to <b>everyone</b> connected</td><td><code>io.emit("room:created")</code> so all users refresh their room list</td></tr>
+    <tr><td><code>io.to("room").emit(...)</code></td><td>Send to everyone <b>in a room</b></td><td>New chat message to that room's members</td></tr>
+    <tr><td><code>io.except("room").emit(...)</code></td><td>Send to everyone <b>except</b> a room</td><td>Notify all users who are not already in the room</td></tr>
+    <tr><td><code>io.of("/admin")</code></td><td>Get (or create) a <b>namespace</b></td><td>Separate admin channel</td></tr>
+    <tr><td><code>await io.fetchSockets()</code></td><td>List all sockets (with their rooms, data)</td><td>"Who is online?" counters</td></tr>
+    <tr><td><code>await io.in("room").fetchSockets()</code></td><td>List sockets in one room</td><td>Count members that are live right now</td></tr>
+    <tr><td><code>io.in("room").socketsJoin("other")</code></td><td>Move all sockets of a room into another room</td><td>Merge two rooms</td></tr>
+    <tr><td><code>io.in("room").disconnectSockets()</code></td><td>Kick everyone in a room</td><td>When a room is deleted, or a user is banned (<code>io.in("user:"+id)</code>)</td></tr>
+    <tr><td><code>io.engine.clientsCount</code></td><td>How many raw connections exist</td><td>Health dashboards</td></tr>
+    <tr><td><code>io.close()</code></td><td>Disconnect everybody and stop</td><td>Clean shutdown</td></tr>
+  </table>
+
+  <div class="callout tip"><p><b>Why our room routes receive <code>io</code>:</b> look at <code>server/src/routes/rooms.js</code>. It starts with <code>module.exports = function roomRoutes(io)</code>. An Express route like <code>POST /api/rooms</code> is a normal HTTP request. It has <b>no socket</b>, because it did not come from a socket connection. But it still wants to tell <b>everyone</b> that a room was created, so it uses the <b>server instance</b>: <code>io.emit("room:created", ...)</code>. This is a very common pattern: HTTP code talks to sockets through <code>io</code>.</p></div>
+
+  <h3>Important: <code>io</code> is really the main namespace</h3>
+  <p>When you write <code>io.on(...)</code> or <code>io.emit(...)</code>, Socket.IO uses the default namespace <code>/</code>. These are the same thing: <code>io.emit(...)</code> and <code>io.of("/").emit(...)</code>. A custom namespace such as <code>io.of("/chat")</code> has its own sockets, rooms and events.</p>
+
+  <!-- ===================== SERVER SOCKET ===================== -->
+  <h3>The socket instance on the server in detail</h3>
+  <p>Socket.IO makes it for you the moment a client connects, and hands it to your <code>"connection"</code> callback. <b>Everything about one user lives on this object.</b></p>
+
+<pre><span class="c">// Properties: facts about this one client</span>
+socket.id                       <span class="c">// "k3Jx9Zq1AbCdEfGh": unique, changes on every reconnect</span>
+socket.handshake.auth           <span class="c">// { token: "..." }  what the client sent in io({ auth })</span>
+socket.handshake.headers        <span class="c">// HTTP headers of the first request (user-agent, origin...)</span>
+socket.handshake.address        <span class="c">// IP address</span>
+socket.handshake.query          <span class="c">// URL parameters</span>
+socket.rooms                    <span class="c">// Set { "k3Jx9...", "room:42" }  rooms it is in</span>
+socket.data                     <span class="c">// your own storage: socket.data.user = user</span>
+socket.connected                <span class="c">// true while connected</span>
+socket.conn.transport.name      <span class="c">// "polling" or "websocket"</span>
+socket.nsp                      <span class="c">// the namespace it belongs to</span>
+socket.request                  <span class="c">// the raw Node HTTP request</span></pre>
+
+<pre><span class="c">// Methods: things you can do with this one client</span>
+socket.on(<span class="s">"chat"</span>, fn)             <span class="c">// listen for an event from THIS client</span>
+socket.emit(<span class="s">"chat"</span>, data)         <span class="c">// send to THIS client only</span>
+socket.join(<span class="s">"room:42"</span>)            <span class="c">// put this client into a room</span>
+socket.leave(<span class="s">"room:42"</span>)           <span class="c">// take it out</span>
+socket.to(<span class="s">"room:42"</span>).emit(...)    <span class="c">// send to a room, but NOT to this client</span>
+socket.broadcast.emit(...)      <span class="c">// send to everyone except this client</span>
+socket.disconnect()             <span class="c">// kick this client</span>
+socket.use(fn)                  <span class="c">// per-event middleware (chapter 11)</span>
+<span class="k">await</span> socket.timeout(<span class="s">5000</span>).emitWithAck(...) <span class="c">// ask this client and wait for the answer</span></pre>
+
+  <h3>Every socket has its own private room</h3>
+  <p>When a socket connects, it is automatically placed in a room named <b>its own id</b>. That gives you a private channel:</p>
+<pre><span class="c">// send a private message to one specific socket from anywhere</span>
+io.to(otherSocketId).emit(<span class="s">"private"</span>, <span class="s">"psst"</span>);</pre>
+
+  <h3>One person can have many sockets</h3>
+  <p>One <b>user</b> can have many <b>sockets</b>: a laptop tab, a second tab, a phone. Each gets its own <code>socket.id</code>. So "send to this person" needs a room named after the <b>user</b>, not the socket:</p>
+<pre>io.on(<span class="s">"connection"</span>, (socket) => {
+  socket.join(<span class="s">`user:${socket.data.user.id}`</span>);   <span class="c">// all tabs of this user share this room</span>
+});
+
+<span class="c">// anywhere later: reaches every tab and device of that user</span>
+io.to(<span class="s">`user:${userId}`</span>).emit(<span class="s">"notification"</span>, { text: <span class="s">"New invite"</span> });
+
+<span class="c">// logout everywhere / ban:</span>
+io.in(<span class="s">`user:${userId}`</span>).disconnectSockets();</pre>
+  <div class="callout tip"><p>That last line is exactly the fix for the gap we found earlier: <b>sockets that stay open after logout</b>. Join a <code>user:ID</code> room at connect, and on logout call <code>disconnectSockets()</code> for that room.</p></div>
+
+  <!-- ===================== ANIMATION 1: WHO RECEIVES ===================== -->
+  <h3>Animation 1: Who receives my message?</h3>
+  <div class="demo">
+    <div class="demo-title">Server instance vs socket instance: pick a send style</div>
+    <div class="hint">Four connected sockets are shown. <b>Alice has two tabs</b>. Choose which socket is "me" and then press a send style. Watch who gets the packet.</div>
+    <div class="controls" style="margin:0 0 12px">
+      <label style="margin:0">"me" (the <code>socket</code> in the code) is:
+        <select id="whoFrom">
+          <option value="0">Alice, tab 1</option><option value="1">Alice, tab 2</option>
+          <option value="2">Bob</option><option value="3">Cara</option>
+        </select></label>
+    </div>
+    <div class="stage" id="whoStage" style="min-height:300px;display:grid;grid-template-columns:150px 1fr;gap:40px;align-items:center">
+      <div class="node" id="whoIO" style="border-color:var(--purple)"><span class="big">🏢</span><b>io</b><small>server instance</small></div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px" id="whoSockets"></div>
+    </div>
+    <div class="controls" id="whoBtns"></div>
+    <div class="caption" id="whoCap">Press a button.</div>
+  </div>
+
+  <!-- ===================== CLIENT SOCKET ===================== -->
+  <h3>The socket instance on the client in detail</h3>
+  <p>In the browser, <code>io()</code> returns the client-side socket. It is smaller than the server one, because it only represents <b>this</b> browser's connection.</p>
+<pre><span class="k">const</span> socket = io(<span class="s">"https://chat.example.com"</span>, { auth: { token } });
+
+socket.id               <span class="c">// same value as the server-side socket.id (once connected)</span>
+socket.connected        <span class="c">// true / false</span>
+socket.active           <span class="c">// will it retry by itself? (chapter 13)</span>
+socket.recovered        <span class="c">// did connection state recovery restore the session?</span>
+socket.auth             <span class="c">// the auth object you passed (you can change it before reconnecting)</span>
+socket.io               <span class="c">// the Manager (see below)</span>
+
+socket.on(<span class="s">"connect"</span>, () => {})                <span class="c">// connected (also after each reconnect)</span>
+socket.on(<span class="s">"disconnect"</span>, (reason) => {})      <span class="c">// lost connection</span>
+socket.on(<span class="s">"connect_error"</span>, (err) => {})      <span class="c">// could not connect</span>
+socket.emit(<span class="s">"message:send"</span>, data)             <span class="c">// send to the server</span>
+socket.connect()  / socket.disconnect()           <span class="c">// open / close by hand</span>
+socket.volatile.emit(<span class="s">"cursor"</span>, pos)          <span class="c">// ok to lose if not ready</span></pre>
+
+  <h3>The Manager: the engine under the sockets</h3>
+  <p>Behind the client socket there is a <b>Manager</b> (<code>socket.io</code>). It owns the <b>one real connection</b> to the server and handles reconnection. If you call <code>io("/chat")</code> and <code>io("/admin")</code> for the same server, you get <b>two client sockets</b> that <b>share one Manager</b> and one network connection. Reconnect events live on the Manager:</p>
+<pre>socket.io.on(<span class="s">"reconnect_attempt"</span>, (n) => console.log(<span class="s">"try number"</span>, n));
+socket.io.on(<span class="s">"reconnect"</span>, () => console.log(<span class="s">"back!"</span>));
+socket.io.opts.transports   <span class="c">// the options you passed</span></pre>
+
+  <div class="callout"><p><b>On the server there is a matching split:</b> <code>io.engine</code> is the Engine.IO layer (the real connections: <code>io.engine.clientsCount</code>), and each <code>socket.conn</code> is the raw connection of one client. Socket.IO's socket sits on top of it (chapter 10).</p></div>
+
+  <!-- ===================== ANIMATION 2: LIFECYCLE ===================== -->
+  <h3>Animation 2: Life of a socket instance</h3>
+  <p>Step through what the <b>server</b> creates, stores and removes for one client.</p>
+  <div class="demo">
+    <div class="demo-title">Birth, life and death of a server-side socket</div>
+    <div class="cols">
+      <div>
+        <div class="stage" id="lcStage" style="min-height:230px;flex-direction:column;align-items:stretch;gap:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div class="node" id="lcC"><span class="big">📱</span>Client<small id="lcCs">no socket</small></div>
+            <div class="node" id="lcIO" style="border-color:var(--purple)"><span class="big">🏢</span><b>io</b><small id="lcIOs">0 sockets</small></div>
+          </div>
+          <div id="lcList" style="display:flex;gap:10px;min-height:70px;align-items:center;justify-content:flex-end;flex-wrap:wrap"></div>
+        </div>
+      </div>
+      <div>
+        <b>The server-side <code>socket</code> object right now</b>
+        <pre id="lcState" style="min-height:230px">// nothing yet</pre>
+      </div>
+    </div>
+    <div class="controls"><button class="btn small" id="lcNext">Next step ▶</button><button class="btn small ghost" id="lcReset">Reset</button></div>
+    <div class="caption" id="lcCap">Press <b>Next step</b>.</div>
+  </div>
+
+  <!-- ===================== OUR APP ===================== -->
+  <h3>Where each instance appears in our chat app</h3>
+  <table>
+    <tr><th>Place</th><th>Instance</th><th>What happens</th></tr>
+    <tr><td><code>server/src/socket.js</code>: <code>new Server(...)</code></td><td>🏢 server <code>io</code></td><td>Created once and returned to <code>app.js</code></td></tr>
+    <tr><td><code>io.use(async (socket, next) =&gt; ...)</code></td><td>🧑‍💼 server socket</td><td>Checks JWT, saves <code>socket.data.user</code></td></tr>
+    <tr><td><code>io.on("connection", (socket) =&gt; ...)</code></td><td>🧑‍💼 server socket</td><td>Registers <code>room:open</code> and <code>message:send</code> for that user</td></tr>
+    <tr><td><code>socket.join("room:ID")</code></td><td>🧑‍💼 server socket</td><td>Only this user starts receiving that room</td></tr>
+    <tr><td><code>io.to("room:ID").emit("message:new", ...)</code></td><td>🏢 server <code>io</code></td><td>Delivers a message to every member in the room</td></tr>
+    <tr><td><code>routes/rooms.js</code>: <code>io.emit("room:created")</code></td><td>🏢 server <code>io</code></td><td>An HTTP route has no socket, so it uses <code>io</code></td></tr>
+    <tr><td><code>client/src/socket.js</code>: <code>io({ auth })</code></td><td>📱 client socket</td><td>Opens the connection</td></tr>
+    <tr><td><code>ChatApp.jsx</code>: <code>s.on("room:created", ...)</code></td><td>📱 client socket</td><td>Refreshes the room list</td></tr>
+  </table>
+
+  <h3>Common mistakes</h3>
+  <ul>
+    <li><b>Mixing up <code>io.emit</code> and <code>socket.emit</code>.</b> <code>io.emit</code> = everyone. <code>socket.emit</code> = just that one client. A chat message sent with <code>socket.emit</code> would reach only the sender!</li>
+    <li><b>Registering <code>io.on</code> inside <code>io.on("connection")</code>.</b> That adds a new listener for every client and leaks memory. Per-client things go on <code>socket</code>. Global things go on <code>io</code>, once.</li>
+    <li><b>Adding <code>socket.on(...)</code> outside the <code>connection</code> callback.</b> There is no <code>socket</code> yet. Handlers must be registered inside it.</li>
+    <li><b>Treating <code>socket.id</code> as a user id.</b> It changes on every reconnect, and one user can have many. Store the real user in <code>socket.data.user</code> and use a <code>user:ID</code> room.</li>
+    <li><b>Keeping state in global variables</b> (<code>let onlineUsers = []</code>). It breaks with many servers. Prefer <code>socket.data</code>, rooms, <code>fetchSockets()</code> or a database.</li>
+    <li><b>Forgetting that rooms vanish when the socket does.</b> A reconnect makes a new socket with no rooms. Join again, or use connection state recovery (chapter 15).</li>
+  </ul>
+
+  <h3>Two lifecycle events worth knowing</h3>
+<pre>io.on(<span class="s">"connection"</span>, (socket) => {
+  socket.on(<span class="s">"disconnecting"</span>, (reason) => {
+    <span class="c">// still has socket.rooms here, perfect for "Sam left the room" messages</span>
+    <span class="k">for</span> (<span class="k">const</span> room <span class="k">of</span> socket.rooms) {
+      <span class="k">if</span> (room !== socket.id) socket.to(room).emit(<span class="s">"user:left"</span>, socket.data.user.username);
+    }
+  });
+
+  socket.on(<span class="s">"disconnect"</span>, (reason) => {
+    <span class="c">// rooms are already gone here; use it for cleanup (timers, database flags)</span>
+  });
+});</pre>
+</section>
+
+
+<!-- ============ 17 ============ -->
+<section class="chapter reveal" id="c17">
+  <span class="level adv">Advanced</span>
+  <h2>17. Heartbeat &amp; reconnect</h2>
+  <p>A TCP connection can look open even when the other side is dead (laptop closed, Wi-Fi gone). Nobody is told. So Socket.IO uses a <b>heartbeat</b>: the server sends a <b>ping</b> every ~25 seconds. The client must answer with <b>pong</b>. If the answer does not come in time (~20 seconds), the connection is declared dead.</p>
+  <p>When the client notices it is disconnected, it <b>reconnects</b> by itself. It waits a little, tries again, and waits <b>longer each time</b> (this is called <i>exponential backoff</i>), plus a random bit so thousands of clients do not all knock at the same moment.</p>
+
+  <div class="demo">
+    <div class="demo-title">Cut the network!</div>
+    <div class="stage" id="hbStage">
+      <div class="pipe open" id="hbPipe"></div>
+      <div class="node on" id="hbC"><span class="big">💻</span>Client<small id="hbCs">connected</small></div>
+      <div class="node on" id="hbS"><span class="big">🖥️</span>Server<small id="hbSs">connected</small></div>
+    </div>
+    <div class="controls"><button class="btn small" id="hbCut">✂️ Cut network</button><button class="btn small ghost" id="hbFix" disabled>🔧 Restore network</button></div>
+    <div class="caption" id="hbCap">Pings are flying. Cut the network and watch.</div>
+    <div id="hbLog" style="font-family:Consolas,monospace;font-size:13px;color:var(--muted);margin-top:10px;max-height:120px;overflow:auto"></div>
+  </div>
+
+  <h3>Important: reconnect means a NEW connection</h3>
+  <p>After a reconnect the client gets a <b>new socket id</b>, and the server has <b>forgotten all rooms</b> that socket was in. That is why <code>ChatWindow.jsx</code> in our app listens to <code>connect</code> and sends <code>room:open</code> again.</p>
+<pre>socket.on(<span class="s">"connect"</span>, () => {
+  socket.emit(<span class="s">"room:open"</span>, roomId); <span class="c">// re-join the room</span>
+});</pre>
+  <div class="callout tip"><p>Messages sent while offline are <b>not</b> magically saved. Our app solves this by loading missed messages from MongoDB when you open a room. For stronger guarantees Socket.IO also has "connection state recovery".</p></div>
+</section>
+
+<!-- ============ 18 ============ -->
+<section class="chapter reveal" id="c18">
+  <span class="level adv">Advanced</span>
+  <h2>18. Scaling to many servers</h2>
+  <p>One Node.js server can hold thousands of sockets. But for a big app you run <b>several servers</b> behind a <b>load balancer</b>. Now two problems appear:</p>
+  <div class="cards">
+    <div class="card"><div class="emoji">🧲</div><h4>Problem 1: Sticky sessions</h4><p>Polling makes several HTTP requests. They must all reach the <b>same</b> server (it holds the session). Fix: the load balancer sticks a client to one server (cookie or IP hash).</p></div>
+    <div class="card"><div class="emoji">🏝️</div><h4>Problem 2: Servers are islands</h4><p>Alice is on Server 1, Bob on Server 2. <code>io.emit()</code> on Server 1 only reaches its own clients! Fix: an <b>adapter</b> (e.g. Redis) that passes messages between servers.</p></div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-title">Two servers, one chat room</div>
+    <div class="hint">Alice talks to Server 1, Bob to Server 2. Turn the Redis adapter on and off, then send a message from Alice.</div>
+    <div class="stage" id="scaleStage" style="min-height:260px;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;justify-items:center;gap:6px">
+      <div style="display:flex;flex-direction:column;gap:30px">
+        <div class="node" id="scA"><span class="big">👩</span>Alice</div>
+        <div class="node" id="scB"><span class="big">👨</span>Bob</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:30px;align-items:center">
+        <div class="node" id="scS1"><span class="big">🖥️</span>Server 1</div>
+        <div class="node" id="scRedis" style="opacity:.25"><span class="big">🟥</span>Redis</div>
+        <div class="node" id="scS2"><span class="big">🖥️</span>Server 2</div>
+      </div>
+      <div class="node" id="scLB"><span class="big">⚖️</span>Load balancer<small>(routes each user)</small></div>
+    </div>
+    <div class="controls">
+      <button class="btn small" id="scToggle">Redis adapter: OFF</button>
+      <button class="btn small ghost" id="scSend">Alice sends "hi"</button>
+    </div>
+    <div class="caption" id="scCap">Press <b>Alice sends</b> first without Redis.</div>
+  </div>
+<pre><span class="c">// the fix, about 6 lines</span>
+<span class="k">const</span> { createAdapter } = <span class="k">require</span>(<span class="s">"@socket.io/redis-adapter"</span>);
+<span class="k">const</span> pub = createClient({ url: <span class="s">"redis://localhost:6379"</span> });
+<span class="k">const</span> sub = pub.duplicate();
+io.adapter(createAdapter(pub, sub));</pre>
+  <div class="callout warn"><p><b>Our app today</b> runs on a single server, so this is not needed yet. Also remember: rate limits and the "15 messages per 10 seconds" counter in our code live in one server's memory, so with many servers you would keep them in Redis too.</p></div>
+</section>
+
+<!-- ============ 19 ============ -->
+<section class="chapter reveal" id="c19">
+  <span class="level adv">Advanced</span>
+  <h2>19. Socket security</h2>
+  <p>A socket stays open for hours. So check <b>who</b> connects and <b>what</b> they do, on the server, every time.</p>
+  <table>
+    <tr><th>Danger</th><th>Defence</th><th>In our app</th></tr>
+    <tr><td>Anyone connects</td><td>Check a token in the handshake: <code>io.use(...)</code></td><td><code>socket.js</code> verifies the JWT</td></tr>
+    <tr><td>Reading a room you never joined</td><td>Check membership before <code>socket.join()</code></td><td><code>room:open</code> asks MongoDB</td></tr>
+    <tr><td>Pretending to be someone else</td><td>Take identity from the verified token, <b>never</b> from the message</td><td><code>socket.data.user</code></td></tr>
+    <tr><td>Crashing the server with odd data</td><td>Validate the shape of <b>every</b> event payload (zod); never destructure raw data</td><td>zod schemas in <code>socket.js</code> (fixed after testing, see chapter 20)</td></tr>
+    <tr><td>Flooding</td><td>Rate limit events, limit size of messages</td><td>15 per 10 s, 1000 characters</td></tr>
+    <tr><td>Other websites connecting</td><td>Allow only your own <code>origin</code> (CORS) <b>and</b> check <code>Origin</code> with <code>allowRequest</code> (chapter 13)</td><td><code>CLIENT_ORIGIN</code> for CORS. Token auth already blocks hijacking; <code>allowRequest</code> not added yet</td></tr>
+    <tr><td>Listening on the wire</td><td>Use <code>wss://</code> (TLS encryption)</td><td>Add HTTPS in production</td></tr>
+    <tr><td>HTML in messages (XSS)</td><td>Escape when showing</td><td>React escapes text</td></tr>
+    <tr><td>Token expires while connected</td><td>Disconnect on logout, re-check the token now and then; client sends a fresh token on reconnect</td><td>Fresh token on reconnect only. Open sockets are <b>not</b> re-checked yet</td></tr>
+  </table>
+  <div class="callout"><p><b>Golden rule:</b> never trust the client. Anything the browser sends can be faked. The server decides who the user is and what they may do.</p></div>
+  <p>More detail for this project is in <code>docs/SECURITY.md</code>.</p>
+</section>
+
+<!-- ============ 20 ============ -->
+<section class="chapter reveal" id="c20">
+  <span class="level adv">Security lab</span>
+  <h2>20. How sockets get hacked, and how to stop it</h2>
+  <p>Chapter 19 gave a short table. Here we go <b>deep</b>. Each tab below is one real kind of attack. For each one you get: a simple story, how it works step by step, an <b>animation you can switch between "no defence" and "defence ON"</b>, bad code vs good code, and whether <b>our chat app</b> is safe.</p>
+
+  <div class="callout warn"><p><b>Why learn this?</b> You can only defend what you understand. This is for building safe apps and protecting your own systems. Never test attacks on servers you do not own or have permission to test.</p></div>
+
+  <div class="callout"><p><b>One idea explains almost every attack:</b> <b>a socket is a long-open door, and everything that comes through it is typed by a stranger.</b> The browser is controlled by the user, so a hacker can send <i>anything</i> they want, in any shape, at any speed, with any claimed identity. So the server must <b>never trust the client</b>. It must check who is talking, what they are allowed to do, and whether the data is the right shape.</p></div>
+
+  <div class="tabs" id="atkTabs"></div>
+
+  <!-- ========== 1. EAVESDROP ========== -->
+  <div class="tab-panel" id="tab-eaves">
+    <h3>🕵️ Eavesdropping and tampering (man-in-the-middle)</h3>
+    <p><b>Story:</b> You send a postcard instead of a sealed letter. Everyone who handles it (the café Wi-Fi owner, a router, a rogue hotspot) can read it, and even cross out words and write new ones.</p>
+    <p><b>How it works:</b></p>
+    <ol>
+      <li>Your app uses plain <code>ws://</code> or <code>http://</code>. Data is sent as readable text.</li>
+      <li>An attacker sits on the path: a fake Wi-Fi hotspot, a compromised router, shared network.</li>
+      <li>They <b>read</b> passwords and messages, steal tokens (then log in as you), or <b>change</b> messages in flight.</li>
+    </ol>
+    <div class="sim" data-sim="eaves"></div>
+    <div class="cols">
+      <div><b>❌ Weak</b><pre class="bad"><span class="c">// client</span>
+io(<span class="s">"http://chat.example.com"</span>);   <span class="c">// ws:// underneath</span></pre></div>
+      <div><b>✅ Strong</b><pre class="good"><span class="c">// client: https page + same-origin or wss</span>
+io(<span class="s">"https://chat.example.com"</span>); <span class="c">// wss:// underneath</span>
+<span class="c">// server: HTTPS (via nginx), HSTS, secure cookies</span></pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Always TLS in production</b> (<code>https://</code> and <code>wss://</code>). See chapter 14.</li>
+      <li>Redirect HTTP to HTTPS and send the <b>HSTS</b> header (Helmet does) so browsers never fall back.</li>
+      <li>Set <code>Secure</code> on cookies so they never travel over plain HTTP.</li>
+      <li>Never put tokens in URLs (<code>?token=...</code>): URLs end up in logs and history.</li>
+    </ul>
+    <div class="status warn"><b>⚠️ Our app:</b> works over plain HTTP in development (fine for localhost). For real use you <b>must</b> host it behind HTTPS. Production mode already turns on the <code>Secure</code> cookie flag.</div>
+  </div>
+
+  <!-- ========== 2. CSWSH ========== -->
+  <div class="tab-panel" id="tab-cswsh">
+    <h3>🎭 Cross-site WebSocket hijacking</h3>
+    <p><b>Story:</b> You are logged in to your chat in one tab. In another tab you open a bad website. That bad page secretly dials <b>your</b> chat server using <b>your</b> browser, and the browser helpfully attaches your login cookie. The server thinks it is you.</p>
+    <p><b>How it works:</b></p>
+    <ol>
+      <li>Login is stored in a <b>cookie</b>. Browsers attach cookies automatically to requests for that site, even if the request was started by another site.</li>
+      <li>Browsers do <b>not</b> apply CORS to WebSocket connections (chapter 13).</li>
+      <li>So <code>evil.com</code> runs <code>new WebSocket("wss://chat.example.com")</code> and the server accepts it as the logged-in victim. The attacker's page can now read the victim's messages and send messages as them.</li>
+    </ol>
+    <div class="sim" data-sim="cswsh"></div>
+    <div class="cols">
+      <div><b>❌ Weak: trusts the cookie, no origin check</b><pre class="bad">io.use((socket, next) => {
+  <span class="k">const</span> user = userFromCookie(socket.request);
+  next();   <span class="c">// any website can reach this</span>
+});</pre></div>
+      <div><b>✅ Strong</b><pre class="good"><span class="k">new</span> Server(httpServer, {
+  allowRequest: (req, cb) =>
+    cb(<span class="k">null</span>, req.headers.origin === ALLOWED),
+});
+<span class="c">// and authenticate with a token in `auth`,</span>
+<span class="c">// not with a cookie the browser sends by itself</span></pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Check the <code>Origin</code> header</b> with <code>allowRequest</code> (chapter 15).</li>
+      <li><b>Use a token sent in <code>auth</code></b>. A foreign page cannot read your token, so it cannot connect.</li>
+      <li>If you must use cookies, set <code>SameSite=Strict</code> (or <code>Lax</code>).</li>
+    </ul>
+    <div class="status ok"><b>✅ Our app is protected</b> because it logs in sockets with a JWT in <code>auth</code>, which evil.com cannot get. <b>⚠️ To be extra safe</b> we should still add the <code>allowRequest</code> origin check.</div>
+  </div>
+
+  <!-- ========== 3. TOKEN ========== -->
+  <div class="tab-panel" id="tab-token">
+    <h3>🎫 Token theft, forgery and stale sessions</h3>
+    <p><b>Story:</b> Your wristband gets you into the party. A thief can steal it, copy it, or make a fake one that looks real. And if the club never checks wristbands again after the door, an expelled guest stays inside.</p>
+    <p><b>How it works:</b></p>
+    <ul>
+      <li><b>Guessing the secret:</b> a weak <code>JWT_SECRET</code> like "secret123" can be cracked offline, then fake tokens can be signed for any user.</li>
+      <li><b>Algorithm trick:</b> some libraries accept a token that says "alg: none" (no signature at all) if you do not pin the algorithm.</li>
+      <li><b>Stealing:</b> tokens leaked through URLs, logs, XSS, or <code>localStorage</code> stolen by a script.</li>
+      <li><b>Stale sessions:</b> a socket is only checked <b>once</b> at connect. After logout or token expiry the open socket keeps working.</li>
+    </ul>
+    <div class="sim" data-sim="token"></div>
+    <div class="cols">
+      <div><b>❌ Weak</b><pre class="bad">jwt.verify(token, <span class="s">"secret123"</span>);        <span class="c">// weak secret</span>
+jwt.verify(token, secret);               <span class="c">// no algorithms list</span>
+io(url + <span class="s">"?token="</span> + token);               <span class="c">// token in URL</span></pre></div>
+      <div><b>✅ Strong</b><pre class="good">jwt.verify(token, secret, {
+  algorithms: [<span class="s">"HS256"</span>],     <span class="c">// pinned</span>
+});                              <span class="c">// secret: 48 random bytes</span>
+io({ auth: { token } });        <span class="c">// not in the URL</span>
+<span class="c">// short life (15 min) + kick on logout:</span>
+io.in(<span class="s">`user:${id}`</span>).disconnectSockets();</pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li>Long random secret (we refuse to start under 32 characters). Keep it in <code>.env</code>, never in git.</li>
+      <li><b>Pin the algorithm</b> when verifying.</li>
+      <li><b>Short-lived access tokens</b> and rotated refresh tokens (our design).</li>
+      <li>Keep tokens in memory, not in <code>localStorage</code>. Send via <code>auth</code>, never in the URL.</li>
+      <li><b>Kick sockets on logout</b>, ban, or password change, and re-check on a timer.</li>
+    </ul>
+    <div class="status warn"><b>✅ Done:</b> pinned HS256, 32+ char secret enforced, 15 min tokens, token in <code>auth</code>, rotation. <b>❌ Missing:</b> an already-open socket is not re-checked or disconnected after logout or token expiry.</div>
+  </div>
+
+  <!-- ========== 4. AUTHZ ========== -->
+  <div class="tab-panel" id="tab-authz">
+    <h3>🚪 Getting into rooms you should not (broken authorization)</h3>
+    <p><b>Story:</b> The hotel checks your key at the front door, but then every room door is unlocked. Once inside, you can walk into anyone's room by just guessing the number.</p>
+    <p><b>How it works:</b></p>
+    <ol>
+      <li>The attacker has a normal account (they are authenticated).</li>
+      <li>They emit <code>room:open</code> with the <b>id of a private room</b> they got from a link, a log, or by guessing.</li>
+      <li>If the server only checks "are you logged in?" and not "are you a <b>member</b>?", they receive every message of that room. This is called <b>IDOR</b> (insecure direct object reference).</li>
+    </ol>
+    <div class="sim" data-sim="authz"></div>
+    <div class="cols">
+      <div><b>❌ Weak</b><pre class="bad">socket.on(<span class="s">"room:open"</span>, (roomId) => {
+  socket.join(<span class="s">`room:${roomId}`</span>);  <span class="c">// no check!</span>
+});</pre></div>
+      <div><b>✅ Strong (what we do)</b><pre class="good">socket.on(<span class="s">"room:open"</span>, <span class="k">async</span> (roomId, ack) => {
+  <span class="k">const</span> room = <span class="k">await</span> Room.findOne({
+    _id: roomId, members: user._id,  <span class="c">// member?</span>
+  });
+  <span class="k">if</span> (!room) <span class="k">return</span> ack({ error: <span class="s">"Not a member"</span> });
+  socket.join(<span class="s">`room:${room._id}`</span>);
+});</pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Authorize every action</b>, not just the connection: join, read, send, delete.</li>
+      <li>Ask the <b>database</b> at the time of the action (people leave or get banned).</li>
+      <li>Do not rely on hard-to-guess ids as security. Treat ids as public.</li>
+      <li>Apply the same rules to <b>HTTP routes</b> and <b>socket events</b>. Two doors, same lock.</li>
+    </ul>
+    <div class="status ok"><b>✅ Our app is protected:</b> <code>room:open</code>, <code>message:send</code> and <code>GET /messages</code> all check membership, and our test proves a non-member is refused.</div>
+  </div>
+
+  <!-- ========== 5. SPOOF ========== -->
+  <div class="tab-panel" id="tab-spoof">
+    <h3>🥸 Identity spoofing</h3>
+    <p><b>Story:</b> A letter says "From: the Bank Manager". The envelope is just handwriting, so anyone can write it. You must check the postmark, not the claim.</p>
+    <p><b>How it works:</b></p>
+    <ol>
+      <li>The client sends <code>{ sender: "admin", text: "Send me money" }</code>.</li>
+      <li>A careless server copies <code>sender</code> from the payload into the message and broadcasts it.</li>
+      <li>Everyone sees a message "from admin" that really came from the attacker.</li>
+    </ol>
+    <div class="sim" data-sim="spoof"></div>
+    <div class="cols">
+      <div><b>❌ Weak</b><pre class="bad">socket.on(<span class="s">"message:send"</span>, ({ sender, text }) => {
+  io.emit(<span class="s">"message:new"</span>, { sender, text });
+});</pre></div>
+      <div><b>✅ Strong (what we do)</b><pre class="good">socket.on(<span class="s">"message:send"</span>, ({ roomId, text }) => {
+  <span class="c">// identity comes from the verified token</span>
+  <span class="k">const</span> sender = socket.data.user;
+  Message.create({ room: roomId, sender: sender._id, text });
+});</pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Identity only from the server's own record</b> (<code>socket.data.user</code>), never from event data.</li>
+      <li>The same goes for roles ("isAdmin"), prices, owners, and timestamps.</li>
+      <li>Ignore or reject unknown fields in payloads.</li>
+    </ul>
+    <div class="status ok"><b>✅ Our app is protected:</b> the sender is always <code>socket.data.user</code>, and the payload schema only allows <code>roomId</code> and <code>text</code>.</div>
+  </div>
+
+  <!-- ========== 6. INJECT ========== -->
+  <div class="tab-panel" id="tab-inject">
+    <h3>💉 Injection: XSS and NoSQL</h3>
+    <p><b>Story:</b> You ask someone to read your note aloud. The note says "now stand up and give me your wallet". A careless reader does exactly what the note says. <b>Data must stay data, never become instructions.</b></p>
+
+    <p><b>A) XSS (script in a chat message)</b></p>
+    <ol>
+      <li>The attacker sends the message <code>&lt;img src=x onerror="steal()"&gt;</code>.</li>
+      <li>Your page puts it into the screen with <code>innerHTML</code>. The browser treats it as real HTML and runs the script in <b>every viewer's</b> browser.</li>
+      <li>The script can read the page, steal tokens kept in <code>localStorage</code>, and act as the victim.</li>
+    </ol>
+    <p><b>B) NoSQL injection (object instead of string)</b></p>
+    <ol>
+      <li>The server expects <code>roomId</code> to be a string. The attacker sends an <b>object</b>: <code>{ "$ne": null }</code>.</li>
+      <li>The server puts it straight into a MongoDB query. MongoDB reads <code>$ne</code> as an <b>operator</b> ("not equal null") and matches far more than intended.</li>
+    </ol>
+    <div class="sim" data-sim="inject"></div>
+    <div class="cols">
+      <div><b>❌ Weak</b><pre class="bad">el.innerHTML = msg.text;               <span class="c">// XSS</span>
+Room.findOne({ _id: roomId });         <span class="c">// roomId could be an object</span></pre></div>
+      <div><b>✅ Strong</b><pre class="good"><span class="c">// React: {msg.text} is escaped automatically</span>
+<span class="k">const</span> roomIdSchema = z.string().regex(<span class="s">/^[0-9a-f]{24}$/i</span>);
+<span class="k">const</span> parsed = roomIdSchema.safeParse(roomId);
+<span class="k">if</span> (!parsed.success) <span class="k">return</span> ack({ error: <span class="s">"Invalid room"</span> });</pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Validate every payload</b> with a schema (zod): exact types, lengths, patterns. Reject everything else.</li>
+      <li><b>Escape on output.</b> Use <code>textContent</code> or a framework that escapes (React does). Never <code>innerHTML</code> with user text.</li>
+      <li>Add a <b>Content-Security-Policy</b> header (Helmet) to limit what scripts can run.</li>
+      <li>Do not keep tokens in <code>localStorage</code>, so an XSS cannot steal them.</li>
+    </ul>
+    <div class="status ok"><b>✅ Our app now:</b> React escapes messages, REST bodies use zod, and <b>socket payloads are now validated too</b>. Our own testing found that <code>room:open</code> used to accept <code>{"$ne":null}</code>. That is fixed and covered by a test.</div>
+  </div>
+
+  <!-- ========== 7. FLOOD ========== -->
+  <div class="tab-panel" id="tab-flood">
+    <h3>🌊 Floods and denial of service (DoS)</h3>
+    <p><b>Story:</b> A crowd of people ring your doorbell nonstop. You cannot answer the real visitors because the bell never stops.</p>
+    <p><b>How it works:</b> sockets stay open and cost memory, so there are many ways to overload them:</p>
+    <ul>
+      <li><b>Message flood:</b> one client sends thousands of events per second.</li>
+      <li><b>Connection flood:</b> a bot opens tens of thousands of sockets.</li>
+      <li><b>Idle hoarding:</b> sockets that connect and then do nothing, just to take up slots.</li>
+      <li><b>Huge payloads:</b> giant messages that fill memory.</li>
+      <li><b>Expensive events:</b> an event that causes a heavy database query, repeated again and again.</li>
+    </ul>
+    <div class="sim" data-sim="flood"></div>
+    <div class="cols">
+      <div><b>❌ Weak</b><pre class="bad"><span class="k">new</span> Server(httpServer);          <span class="c">// defaults: 1 MB messages, 45 s to connect</span>
+socket.on(<span class="s">"search"</span>, <span class="k">async</span> (q) => {
+  <span class="k">await</span> HeavyQuery(q);          <span class="c">// no limit</span>
+});</pre></div>
+      <div><b>✅ Strong</b><pre class="good"><span class="k">new</span> Server(httpServer, {
+  maxHttpBufferSize: <span class="s">1e5</span>,   <span class="c">// 100 KB</span>
+  connectTimeout: <span class="s">10000</span>,    <span class="c">// finish connecting fast</span>
+});
+<span class="c">// per-socket limit (we do this: 15 msgs / 10 s)</span>
+<span class="c">// per-IP connection cap at nginx: limit_conn</span></pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Rate limit events</b> per socket and per user. Slow or disconnect abusers.</li>
+      <li><b>Limit connections</b> per IP and overall (nginx <code>limit_conn</code>, a cloud WAF, or a firewall).</li>
+      <li>Lower <code>maxHttpBufferSize</code> and <code>connectTimeout</code> (chapter 15).</li>
+      <li>Require authentication <b>early</b>, so anonymous bots can do little.</li>
+      <li>Keep event handlers cheap: pagination limits, indexes, timeouts.</li>
+      <li>Put a CDN or load balancer in front, and set up monitoring and alerts for connection counts.</li>
+    </ul>
+    <div class="status warn"><b>✅ Done:</b> 15 messages / 10 s per socket, 1000-character limit, login required to connect. <b>⚠️ Not yet:</b> per-IP connection limit, lower <code>maxHttpBufferSize</code>, shorter <code>connectTimeout</code>. The Express rate limiter covers <code>/api</code> but not <code>/socket.io</code>.</div>
+  </div>
+
+  <!-- ========== 8. PAYLOAD ========== -->
+  <div class="tab-panel" id="tab-payload">
+    <h3>💥 Malformed payloads that crash the server</h3>
+    <p><b>Story:</b> A vending machine expects coins. Someone feeds it a banana and the whole machine jams for everybody.</p>
+    <p><b>How it works:</b></p>
+    <ol>
+      <li>Your handler assumes the data has a shape: <code>({ roomId, text })</code>.</li>
+      <li>The attacker emits <code>null</code>, a number, a huge array, or leaves out the callback.</li>
+      <li>The code throws an error that nobody catches. In Node.js an <b>uncaught exception kills the whole process</b>, which disconnects <b>every user</b>.</li>
+    </ol>
+    <div class="callout warn"><p><b>This really happened in our app.</b> While writing this chapter I tested our server: <code>socket.emit("message:send", null)</code> from any logged-in user crashed it with <code>Cannot destructure property 'roomId' of null</code>. I fixed it by validating every payload with a schema. A regression test now covers it.</p></div>
+    <div class="sim" data-sim="payload"></div>
+    <div class="cols">
+      <div><b>❌ Weak (our old code)</b><pre class="bad">socket.on(<span class="s">"message:send"</span>, <span class="k">async</span> ({ roomId, text } = {}, ack) => {
+  <span class="c">// null → TypeError → server process dies</span>
+  ack?.({ ok: <span class="k">true</span> });  <span class="c">// ack not a function → TypeError</span>
+});</pre></div>
+      <div><b>✅ Strong (our code now)</b><pre class="good"><span class="k">const</span> replyTo = (ack) =>
+  <span class="k">typeof</span> ack === <span class="s">"function"</span> ? ack : () => {};
+
+socket.on(<span class="s">"message:send"</span>, <span class="k">async</span> (payload, ack) => {
+  <span class="k">const</span> reply = replyTo(ack);
+  <span class="k">const</span> parsed = sendSchema.safeParse(payload);
+  <span class="k">if</span> (!parsed.success) <span class="k">return</span> reply({ error: <span class="s">"Bad message"</span> });
+  <span class="c">// ...use parsed.data only</span>
+});</pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Never destructure the raw payload.</b> Parse it with a schema first.</li>
+      <li>Wrap handlers in <code>try/catch</code>, and treat <code>ack</code> as optional and untrusted.</li>
+      <li>Limit sizes of strings and arrays inside the schema.</li>
+      <li>Handle <code>"error"</code> events, and use a process manager (pm2, systemd, Docker restart) so a crash recovers quickly. This is a safety net, not a fix.</li>
+      <li>Fuzz your events in tests: send <code>null</code>, <code>[]</code>, <code>{}</code>, a 1 MB string, wrong types.</li>
+    </ul>
+    <div class="status ok"><b>✅ Fixed in our app</b> (<code>server/src/socket.js</code>) and protected by the test "sockets survive malformed payloads".</div>
+  </div>
+
+  <!-- ========== 9. LEAK ========== -->
+  <div class="tab-panel" id="tab-leak">
+    <h3>🫗 Data leaks</h3>
+    <p><b>Story:</b> You ask the waiter for the menu and he hands you the restaurant's entire accounting book. Nothing was "hacked"; the server simply said too much.</p>
+    <p><b>How it works:</b></p>
+    <ul>
+      <li>The server broadcasts a whole database object, with <b>email, password hash, tokens, internal ids</b>, because that was easier than picking fields.</li>
+      <li>Every client receives it. Anyone can open DevTools, see the WebSocket frames, and read all of it.</li>
+      <li>Detailed error messages (<code>"JWT signature mismatch"</code>, stack traces) teach attackers how the server works.</li>
+      <li>Private data sent to a room that is wider than it should be.</li>
+    </ul>
+    <div class="sim" data-sim="leak"></div>
+    <div class="cols">
+      <div><b>❌ Weak</b><pre class="bad">io.to(room).emit(<span class="s">"message:new"</span>, {
+  ...message,
+  sender: user,    <span class="c">// contains email, hash...</span>
+});
+ack({ error: err.stack });</pre></div>
+      <div><b>✅ Strong (what we do)</b><pre class="good"><span class="c">// only the fields the client needs</span>
+io.to(room).emit(<span class="s">"message:new"</span>, message.toPublic(user));
+<span class="c">// → sender: { id, username }</span>
+ack({ error: <span class="s">"Could not send message"</span> });  <span class="c">// generic</span>
+<span class="c">// passwordHash is select:false and never loaded</span></pre></div>
+    </div>
+    <h4>Defences</h4>
+    <ul>
+      <li><b>Send only what is needed</b> (a "public view" function like our <code>toPublic()</code>).</li>
+      <li>Keep secrets out of normal queries (<code>select: false</code>).</li>
+      <li><b>Generic error messages</b> to clients. Log details on the server.</li>
+      <li>Think carefully about <b>who is in each room</b> before emitting. Use per-user rooms for private data.</li>
+      <li>Disable debug tools (like the Socket.IO Admin UI) in production or protect them with strong auth.</li>
+    </ul>
+    <div class="status ok"><b>✅ Our app is protected:</b> messages use <code>toPublic()</code> (only <code>id</code> + <code>username</code>), <code>passwordHash</code> is never selected, and errors are generic.</div>
+  </div>
+
+  <!-- ========== 10. SCORECARD ========== -->
+  <div class="tab-panel" id="tab-score">
+    <h3>📋 Our app's scorecard</h3>
+    <p>An honest look at where our chat app stands today.</p>
+    <table class="score-table">
+      <tr><th>Area</th><th>Status</th><th>Detail</th></tr>
+      <tr><td>Encryption (TLS)</td><td><span class="pill warn">⚠️ deploy step</span></td><td>Plain HTTP for local development. Must run behind HTTPS in production.</td></tr>
+      <tr><td>Origin check (<code>allowRequest</code>)</td><td><span class="pill warn">⚠️ todo</span></td><td>Safe today because login uses a token, not cookies. Add it for defence in depth.</td></tr>
+      <tr><td>Authentication on connect</td><td><span class="pill ok">✅ done</span></td><td>JWT verified in <code>io.use</code>, algorithm pinned, secret length enforced.</td></tr>
+      <tr><td>Short-lived tokens, refresh rotation</td><td><span class="pill ok">✅ done</span></td><td>15 min access token, hashed single-use refresh tokens.</td></tr>
+      <tr><td>Refresh-token reuse detection</td><td><span class="pill warn">⚠️ todo</span></td><td>A stolen token used first is not detected yet.</td></tr>
+      <tr><td>Kick open sockets on logout/expiry</td><td><span class="pill bad">❌ missing</span></td><td>An open socket keeps working until it disconnects.</td></tr>
+      <tr><td>Room membership checks</td><td><span class="pill ok">✅ done</span></td><td>Checked in the database on open and on every message.</td></tr>
+      <tr><td>Sender from token, not payload</td><td><span class="pill ok">✅ done</span></td><td><code>socket.data.user</code> is the only source of identity.</td></tr>
+      <tr><td>Payload validation on sockets</td><td><span class="pill ok">✅ fixed</span></td><td>zod schemas; crash and operator-injection bugs found and fixed, with a test.</td></tr>
+      <tr><td>XSS protection</td><td><span class="pill ok">✅ done</span></td><td>React escaping, Helmet headers.</td></tr>
+      <tr><td>Per-socket message rate limit</td><td><span class="pill ok">✅ done</span></td><td>15 per 10 s, max 1000 characters.</td></tr>
+      <tr><td>Connection flood protection</td><td><span class="pill warn">⚠️ todo</span></td><td>No per-IP socket limit. Add at nginx or a WAF.</td></tr>
+      <tr><td>Tight size/time limits</td><td><span class="pill warn">⚠️ todo</span></td><td>Defaults (1 MB, 45 s). Recommended: 100 KB, 10 s.</td></tr>
+      <tr><td>Data minimisation</td><td><span class="pill ok">✅ done</span></td><td><code>toPublic()</code>, hash never selected, generic errors.</td></tr>
+      <tr><td>Logging and alerts</td><td><span class="pill bad">❌ missing</span></td><td>No audit log of failed logins, denied joins or flood attempts.</td></tr>
+    </table>
+    <div class="callout tip"><p><b>Next best steps, in order:</b> (1) disconnect sockets on logout with a <code>user:ID</code> room, (2) <code>allowRequest</code> origin check, (3) tighter <code>maxHttpBufferSize</code> and <code>connectTimeout</code>, (4) refresh-token reuse detection, (5) audit logging.</p></div>
+
+    <h4>Golden rules (print these)</h4>
+    <ol>
+      <li><b>Never trust the client.</b> Identity, role, ownership: always from the server.</li>
+      <li><b>Authenticate on connect, authorize on every event.</b></li>
+      <li><b>Validate the shape of every payload.</b> Reject, don't repair.</li>
+      <li><b>Limit everything:</b> size, rate, time, connections.</li>
+      <li><b>Encrypt in transit</b> and keep tokens short-lived.</li>
+      <li><b>Send the minimum</b> and fail with generic messages.</li>
+      <li><b>Test with bad input</b> (null, wrong types, huge values) and <b>log</b> what gets refused.</li>
+    </ol>
+  </div>
+</section>
+
+
+<!-- ============ 21 ============ -->
+<section class="chapter reveal" id="c21">
+  <span class="level adv">Putting it together</span>
+  <h2>21. Our chat app, step by step</h2>
+  <p>Now we connect everything you learned to the real project. Press play to see a message travel from Alice to Bob.</p>
+
+  <div class="demo">
+    <div class="demo-title">A chat message's journey</div>
+    <div class="stage" id="appStage" style="min-height:180px">
+      <div class="pipe open"></div>
+      <div class="node" id="apA"><span class="big">👩</span>Alice<small>browser</small></div>
+      <div class="node" id="apS"><span class="big">🖥️</span>Node server<small>Socket.IO</small></div>
+      <div class="node" id="apDB"><span class="big">🍃</span>MongoDB</div>
+      <div class="node" id="apB"><span class="big">👨</span>Bob<small>browser</small></div>
+    </div>
+    <div class="controls"><button class="btn small" id="apNext">Next step ▶</button><button class="btn small ghost" id="apReset">Reset</button></div>
+    <div class="caption" id="apCap">Press <b>Next step</b>.</div>
+  </div>
+
+  <h3>Where each part lives</h3>
+  <table>
+    <tr><th>Idea</th><th>File</th></tr>
+    <tr><td>Client opens the socket</td><td><code>client/src/socket.js</code> → <code>io({ auth })</code></td></tr>
+    <tr><td>Dev proxy forwards <code>/socket.io</code> to port 5000</td><td><code>client/vite.config.js</code></td></tr>
+    <tr><td>Server checks JWT in the handshake</td><td><code>server/src/socket.js</code> → <code>io.use</code></td></tr>
+    <tr><td>Join the live room (members only)</td><td><code>socket.js</code> → <code>room:open</code></td></tr>
+    <tr><td>Send a message, save it, broadcast</td><td><code>socket.js</code> → <code>message:send</code></td></tr>
+    <tr><td>Show new messages</td><td><code>client/src/components/ChatWindow.jsx</code></td></tr>
+    <tr><td>Tell everyone a room was created / deleted</td><td><code>server/src/routes/rooms.js</code> → <code>io.emit("room:created")</code></td></tr>
+  </table>
+  <div class="callout tip"><p><b>Try it yourself:</b> run the app, open the browser DevTools → Network → <b>WS</b> tab. Click the socket.io connection and watch the frames like <code>42["message:new",{...}]</code>. Now you can read them!</p></div>
+</section>
+
+<!-- ============ 22 ============ -->
+<section class="chapter reveal" id="c22">
+  <span class="level beginner">Finish</span>
+  <h2>22. Glossary &amp; quiz</h2>
+  <table>
+    <tr><th>Word</th><th>Easy meaning</th></tr>
+    <tr><td>Socket</td><td>One end of a two-way connection.</td></tr>
+    <tr><td>IP address</td><td>Address of a computer.</td></tr>
+    <tr><td>Port</td><td>Door number of a program on that computer.</td></tr>
+    <tr><td>TCP</td><td>Reliable, in-order delivery (with handshake).</td></tr>
+    <tr><td>UDP</td><td>Fast, no promises.</td></tr>
+    <tr><td>Handshake</td><td>The "hello" steps at the start of a connection.</td></tr>
+    <tr><td>HTTP</td><td>Request → response rules of the web.</td></tr>
+    <tr><td>Polling</td><td>Asking again and again for news.</td></tr>
+    <tr><td>WebSocket</td><td>Permanent two-way pipe for browsers.</td></tr>
+    <tr><td>Frame</td><td>One small piece of WebSocket data.</td></tr>
+    <tr><td>Socket.IO</td><td>Library on top of WebSocket: events, rooms, reconnect.</td></tr>
+    <tr><td>Event</td><td>A named message, like <code>"chat"</code>.</td></tr>
+    <tr><td>Room</td><td>A group of sockets to send to together.</td></tr>
+    <tr><td>Namespace</td><td>A separate channel for a different feature.</td></tr>
+    <tr><td>Acknowledgement</td><td>A reply to one specific event.</td></tr>
+    <tr><td>Heartbeat</td><td>Regular ping/pong to prove both sides are alive.</td></tr>
+    <tr><td>Backoff</td><td>Waiting longer after each failed reconnect.</td></tr>
+    <tr><td>Load balancer</td><td>Spreads users across servers.</td></tr>
+    <tr><td>Sticky session</td><td>Same user always goes to the same server.</td></tr>
+    <tr><td>Adapter</td><td>Lets many servers share socket messages (e.g. Redis).</td></tr>
+    <tr><td>Middleware</td><td>A function that runs before your real code and can allow or refuse.</td></tr>
+    <tr><td>Binary data</td><td>Raw bytes (files, images, audio) instead of text.</td></tr>
+    <tr><td>Origin</td><td>Protocol + domain + port of a web page.</td></tr>
+    <tr><td>CORS</td><td>Server's permission slip that lets another origin read its answers.</td></tr>
+    <tr><td>connect_error</td><td>Client event fired when connecting fails.</td></tr>
+    <tr><td>TLS</td><td>Encryption that protects data and proves the server's identity.</td></tr>
+    <tr><td>Certificate</td><td>A signed ID card for a website's public key.</td></tr>
+    <tr><td>TLS termination</td><td>A proxy handles HTTPS, Node behind it speaks plain HTTP.</td></tr>
+    <tr><td>Options object</td><td>The settings you pass to <code>new Server(...)</code>.</td></tr>
+    <tr><td>pingInterval / pingTimeout</td><td>How often the heartbeat is sent / how long to wait for the reply.</td></tr>
+    <tr><td>maxHttpBufferSize</td><td>Biggest single message allowed.</td></tr>
+    <tr><td>allowRequest</td><td>Function that can refuse a connection at the very first HTTP request.</td></tr>
+    <tr><td>Connection state recovery</td><td>Restores rooms and missed events after a short disconnect.</td></tr>
+    <tr><td>Server instance (io)</td><td>The one object that represents the whole server and all clients.</td></tr>
+    <tr><td>Socket instance</td><td>The object for one client's connection. One on the server side, one on the client side.</td></tr>
+    <tr><td>socket.id</td><td>Unique id of a socket. Changes on every reconnect.</td></tr>
+    <tr><td>socket.data</td><td>Your own storage attached to one server-side socket.</td></tr>
+    <tr><td>Manager</td><td>Client object that owns the real connection and handles reconnects.</td></tr>
+    <tr><td>MITM</td><td>Attacker sitting between you and the server, reading or changing data.</td></tr>
+    <tr><td>CSWSH</td><td>Cross-site WebSocket hijacking: a bad website opens a socket using your login.</td></tr>
+    <tr><td>IDOR</td><td>Reaching someone else's data by changing an id, because access was not checked.</td></tr>
+    <tr><td>XSS</td><td>A script hidden in data that runs in other users' browsers.</td></tr>
+    <tr><td>DoS</td><td>Denial of service: overloading a server so real users cannot use it.</td></tr>
+    <tr><td>Schema validation</td><td>Checking that data has exactly the allowed shape before using it.</td></tr>
+    <tr><td>wss://</td><td>WebSocket over encryption (TLS).</td></tr>
+  </table>
+
+  <div class="demo">
+    <div class="demo-title">Test yourself</div>
+    <div id="quiz"></div>
+    <div class="score" id="score"></div>
+  </div>
+  <p style="text-align:center;font-size:20px;margin-top:40px">🎉 You now understand sockets from the wire up. Go build something live!</p>
+</section>
+
+</main>
+<script src="app.js"></script>
+</body>
+</html>

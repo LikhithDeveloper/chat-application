@@ -107,6 +107,7 @@ Key principles used:
 - `io.use(...)` verifies the JWT during the handshake; invalid → `Unauthorized`, no connection.
 - Joining the Socket.IO room channel happens only after the membership check.
 - Flood control: max 15 messages / 10 s per connection; messages limited to 1000 characters.
+- **Every socket payload is validated with zod** (`roomId` must be a 24-hex string, `text` a 1-1000 char string) and the acknowledgement callback is treated as optional. Without this a client could crash the server with `null` or inject Mongo operators like `{"$ne":null}`; both bugs were found by testing and are now covered by a regression test.
 
 ---
 
