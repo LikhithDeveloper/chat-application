@@ -5,7 +5,8 @@ import Avatar from './Avatar'
 const formatTime = (iso) =>
   new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-export default function ChatWindow({ room, user, socket, onJoin, onLeave, onDelete }) {
+// One room's chat. If the user is not a member yet it shows the join / request screen instead.
+export default function ChatWindow({ room, channelName, user, socket, actions, onBack }) {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -59,30 +60,28 @@ export default function ChatWindow({ room, user, socket, onJoin, onLeave, onDele
   }
 
   if (!room) {
-    return (
-      <main className="chat empty-state">
-        <div className="big-emoji">👋</div>
-        <h2>Pick a room to start chatting</h2>
-        <p className="muted">Choose one from the left, or create your own.</p>
-      </main>
-    )
+    return <main className="chat empty-state"><div className="spinner" /></main>
   }
+
+  const title = room.isGlobal ? '🌍 Global chat' : `${room.isPrivate ? '🔒' : '#'} ${room.name}`
+  const subtitle = [channelName, room.description].filter(Boolean).join(' · ') || `${room.memberCount} members`
 
   return (
     <main className="chat">
       <header className="chat-head">
+        {onBack && <button className="btn ghost small" onClick={onBack} title="Back to the channel">←</button>}
         <Avatar name={room.name} square />
         <div className="room-text">
-          <strong># {room.name}</strong>
-          <span>{room.description || `${room.memberCount} members`}</span>
+          <strong>{title}</strong>
+          <span>{subtitle}</span>
         </div>
-        {isMember && !room.isOwner && (
-          <button className="btn ghost small" onClick={() => onLeave(room.id)}>Leave</button>
+        {isMember && !room.isOwner && !room.isGlobal && (
+          <button className="btn ghost small" onClick={() => actions.leaveRoom(room.id)}>Leave</button>
         )}
         {room.isOwner && (
           <button
             className="btn danger small"
-            onClick={() => window.confirm('Delete this room and all its messages?') && onDelete(room.id)}
+            onClick={() => window.confirm('Delete this room and all its messages?') && actions.deleteRoom(room.id)}
           >
             Delete
           </button>
@@ -90,11 +89,33 @@ export default function ChatWindow({ room, user, socket, onJoin, onLeave, onDele
       </header>
 
       {!isMember ? (
+        // ---------- join (public room) or request (private room) ----------
         <div className="empty-state">
-          <div className="big-emoji">🚪</div>
-          <h2>Join # {room.name}</h2>
-          <p className="muted">{room.memberCount} member{room.memberCount === 1 ? '' : 's'} are chatting here.</p>
-          <button className="btn primary" onClick={() => onJoin(room.id)}>Join room</button>
+          <div className="big-emoji">{room.isPrivate ? '🔒' : '🚪'}</div>
+          <h2>{room.isPrivate ? 'Private room' : 'Join'} # {room.name}</h2>
+          <p className="muted">{room.memberCount} member{room.memberCount === 1 ? '' : 's'} chat here.</p>
+
+          {!room.isPrivate && (
+            <button className="btn primary" onClick={() => actions.joinRoom(room.id)}>Join room</button>
+          )}
+
+          {room.isPrivate && room.requestStatus === 'pending' && (
+            <>
+              <p className="muted">⏳ Your request was sent. The channel admin has to accept it.</p>
+              <button className="btn ghost" onClick={() => actions.cancelRoomRequest(room.id)}>Cancel request</button>
+            </>
+          )}
+
+          {room.isPrivate && room.requestStatus !== 'pending' && (
+            <>
+              <p className="muted">
+                {room.requestStatus === 'rejected'
+                  ? '❌ Your last request was declined. You can ask again.'
+                  : 'The channel admin must accept you before you can read or write here.'}
+              </p>
+              <button className="btn primary" onClick={() => actions.requestRoom(room.id)}>Request to join</button>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -123,7 +144,7 @@ export default function ChatWindow({ room, user, socket, onJoin, onLeave, onDele
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={`Message # ${room.name}`}
+              placeholder={room.isGlobal ? 'Message everyone…' : `Message ${title}`}
               maxLength={1000}
               autoFocus
             />

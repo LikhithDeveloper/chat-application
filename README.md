@@ -1,6 +1,6 @@
 # Like Chat
 
-A real-time chat app: sign up, log in, create public rooms, join any room, and talk live.
+A real-time chat app: sign up, log in, talk to everyone in the **Global chat**, or or build **channels** (public or private) with their own public/private rooms.
 
 **Stack:** React + Vite · Node/Express 5 · Socket.IO · MongoDB (Mongoose) · JWT auth
 
@@ -8,7 +8,7 @@ A real-time chat app: sign up, log in, create public rooms, join any room, and t
 
 | Part | Where | What it is |
 |---|---|---|
-| Chat application | `client/`, `server/` | Full-stack real-time chat with secure JWT auth, public rooms and live messaging |
+| Chat application | `client/`, `server/` | Full-stack real-time chat with secure JWT auth, a Global chat, and channels with public/private rooms and an approval flow |
 | Security documentation | `docs/SECURITY.md` | How authentication and authorization work, and why |
 | Socket learning notes | `notes-to-sockets/` | An animated, beginner-to-advanced guide to sockets, Socket.IO and socket security. Open `notes-to-sockets/index.html` in a browser (no install needed) |
 | Automated tests | `server/test/` | End-to-end tests for auth, authorization, and socket hardening (`npm test`) |
@@ -63,12 +63,22 @@ docs/SECURITY.md        how auth & authorization work
 | POST `/api/auth/register` · `/login` | create account / sign in | public (rate-limited) |
 | POST `/api/auth/refresh` · `/logout` | rotate session / sign out | refresh cookie |
 | GET `/api/auth/me` | current user | logged in |
-| GET `/api/rooms` | all rooms | logged in |
-| POST `/api/rooms` | create a room | logged in |
-| POST `/api/rooms/:id/join` · `/leave` | membership | logged in |
-| DELETE `/api/rooms/:id` | delete room | owner only |
-| GET `/api/rooms/:id/messages` | last 100 messages | members only |
+| GET `/api/channels` | the Global room + every channel (rooms only for channels you belong to) | logged in |
+| POST `/api/channels` | create a channel (**public** or **private**), you become its admin | logged in |
+| POST `/api/channels/:id/join` | join a **public** channel directly | logged in |
+| POST · DELETE `/api/channels/:id/request` | ask to join / cancel the request (**private** channel) | logged in |
+| POST `/api/channels/:id/leave` | leave a channel (and all its rooms) | members, not the admin |
+| DELETE `/api/channels/:id` | delete a channel with its rooms and messages | channel admin |
+| POST `/api/channels/:id/rooms` | create a room (**public** or **private**) inside the channel | channel admin |
+| GET `/api/channels/:id/requests` | the inbox of pending join requests | channel admin |
+| POST `/api/channels/:id/requests/:reqId/approve` · `/reject` | answer a request | channel admin |
+| POST `/api/rooms/:id/join` | join a **public** room | members of the channel |
+| POST · DELETE `/api/rooms/:id/request` | ask to join / cancel (**private** room) | members of the channel |
+| POST `/api/rooms/:id/leave` · DELETE `/api/rooms/:id` | leave / delete a room | member / channel admin |
+| GET `/api/rooms/:id/messages` | last 100 messages | room members (Global: any logged-in user) |
 
-Socket events: `room:open`, `message:send` (client→server); `message:new`, `room:created|updated|deleted` (server→client).
+Rooms **cannot** be created outside a channel; there is no endpoint for it.
+
+Socket events: `room:open`, `message:send` (client→server); `message:new`, `channels:changed`, `rooms:changed`, `requests:changed` (server→client).
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the security design.

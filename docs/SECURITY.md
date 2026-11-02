@@ -87,14 +87,25 @@ Authentication answers *"who are you?"*. Authorization answers *"may you do this
 
 | Action | Rule | Where |
 |---|---|---|
-| Any `/api/rooms/*` route | Must have a valid access token | `requireAuth` middleware |
-| See room list | Any logged-in user | `routes/rooms.js` |
-| Join a room | Any logged-in user (rooms are public) | `POST /:id/join` |
-| Read room history | **Members only** → else `403` | `GET /:id/messages` |
-| Open a live room feed | **Members only** (checked in DB) | socket `room:open` |
-| Send a message | **Members only**, re-checked in DB on *every* message | socket `message:send` |
-| Delete a room | **Owner only** → else `403` | `DELETE /:id` |
-| Leave a room | Members; owner may not (must delete) | `POST /:id/leave` |
+| Any `/api/channels/*` or `/api/rooms/*` route | Must have a valid access token | `requireAuth` middleware |
+| See the channel list | Any logged-in user (private channels show only name + description) | `GET /api/channels` |
+| Join a **public** channel | Any logged-in user, directly | `POST /channels/:id/join` |
+| Join a **private** channel | Send a request; **only that channel's admin** can approve, then the user becomes a member | `/request`, `/requests/:reqId/approve` |
+| See a channel's rooms | **Channel members only** (others get an empty list) | `GET /api/channels` |
+| Create a room | **Channel admin only**, and always inside a channel (no endpoint creates a loose room) | `POST /channels/:id/rooms` |
+| Join a **public** room | Member of its channel | `POST /rooms/:id/join` |
+| Join a **private** room | Member of its channel, then request + **channel admin** approval | `/rooms/:id/request` |
+| Read history / open a live room / send | Member of the **room AND its channel**, re-checked in the DB on every action | `Room.findAccessible()` |
+| Read or answer join requests | **Channel admin only**; a request id from another channel returns 404 | `/channels/:id/requests*` |
+| Delete a room / channel | **Channel admin only** | `DELETE` routes |
+| Leave a channel | Members (not the admin); also removes the user from all its rooms and stops live messages immediately | `POST /channels/:id/leave` |
+| Global room | Any logged-in user can read and write; nobody can leave or delete it | `isGlobal` |
+
+Details that matter:
+- **One rule for access.** `Room.findAccessible(roomId, userId)` is used by both the HTTP routes and the sockets, so they cannot disagree.
+- **Requests can't be duplicated or replayed.** A partial unique index allows only one *pending* request per user and target, and approving/rejecting uses an atomic `findOneAndUpdate` on `status: "pending"`.
+- **Leaving a channel is instant.** The user's live sockets are removed from the room's socket.io channel (`socketsLeave`), not just from the database.
+- **Per-user and per-channel socket rooms** (`user:<id>`, `channel:<id>`) are used only for notifications ("something changed, reload"); they carry no message data.
 
 Key principles used:
 - **Never trust the client.** The sender of a message is `socket.data.user` (from the verified

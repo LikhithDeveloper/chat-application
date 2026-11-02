@@ -1,105 +1,139 @@
 const express = require("express");
-const { z } = require("zod");
 
 const Room = require("../models/Room");
+const Channel = require("../models/Channel");
 const Message = require("../models/Message");
-const { validate } = require("../middleware/validate");
+const JoinRequest = require("../models/JoinRequest");
 const { requireAuth } = require("../middleware/auth");
 
-// `io` is passed in so room changes can be announced to everyone in real time.
+/*
+ * Routes for ONE existing room. (Rooms are created inside a channel: POST /api/channels/:id/rooms.)
+ *
+ *   public  room: a member of the channel joins directly
+ *   private room: a member of the channel sends a request, the channel admin approves
+ */
 module.exports = function roomRoutes(io) {
   const router = express.Router();
-  router.use(requireAuth); // every route below needs a logged-in user
+  router.use(requireAuth);
 
-  const createSchema = z.object({
-    name: z.string().trim().min(3, "Room name must be at least 3 characters").max(30),
-    description: z.string().trim().max(120).default(""),
-  });
-
-  // Loads :id or answers 404. Used by the routes that need a room.
   async function findRoom(req, res) {
     const room = await Room.findById(req.params.id);
     if (!room) res.status(404).json({ error: "Room not found" });
     return room;
   }
 
-  // List ALL rooms (everyone can see and join any room).
-  router.get("/", async (req, res) => {
-    const rooms = await Room.find().sort({ createdAt: -1 });
-    res.json({ rooms: rooms.map((r) => r.toPublic(req.user._id)) });
-  });
+  // Loads the room AND its channel, and makes sure the user is a member of that channel.
+  // Returns { room, channel } or answers the request with an error and returns null.
+  async function findRoomInMyChannel(req, res) {
+    const room = await findRoom(req, res);
+    if (!room) return null;
 
-  // Create a room. The creator becomes owner and first member.
-  router.post("/", validate(createSchema), async (req, res) => {
-    const { name, description } = req.body;
-
-    if (await Room.exists({ nameLower: name.toLowerCase() })) {
-      return res.status(409).json({ error: "A room with that name already exists" });
+    if (room.isGlobal) {
+      res.status(400).json({ error: "Everyone is already in the Global room" });
+      return null;
     }
 
-    const room = await Room.create({
-      name,
-      nameLower: name.toLowerCase(),
-      description,
-      owner: req.user._id,
-      members: [req.user._id],
-    });
+    const channel = await Channel.findById(room.channel);
+    if (!channel || !channel.hasMember(req.user._id)) {
+      res.status(403).json({ error: "Join the channel first" });
+      return null;
+    }
+    return { room, channel };
+  }
 
-    io.emit("room:created", { id: room._id.toString() }); // tell every client to refresh its list
-    res.status(201).json({ room: room.toPublic(req.user._id) });
+  const refresh = (channelId) => io.to(`channel:${channelId}`).emit("rooms:changed");
+
+  // PUBLIC room: join directly.
+  router.post("/:id/join", async (req, res) => {
+    const found = await findRoomInMyChannel(req, res);
+    if (!found) return;
+    const { room, channel } = found;
+
+    if (room.isPrivate) {
+      return res.status(403).json({ error: "This room is private. Send a join request instead." });
+    }
+
+    await Room.updateOne({ _id: room._id }, { $addToSet: { members: req.user._id } }); // safe to repeat
+    refresh(channel._id);
+    res.json({ ok: true });
   });
 
-  router.post("/:id/join", async (req, res) => {
-    const room = await findRoom(req, res);
-    if (!room) return;
+  // PRIVATE room: ask the channel admin.
+  router.post("/:id/request", async (req, res) => {
+    const found = await findRoomInMyChannel(req, res);
+    if (!found) return;
+    const { room, channel } = found;
 
-    // $addToSet = add only if not already there (safe to call twice).
-    await Room.updateOne({ _id: room._id }, { $addToSet: { members: req.user._id } });
-    const updated = await Room.findById(room._id);
+    if (!room.isPrivate) return res.status(400).json({ error: "This room is public, just join it" });
+    if (room.members.some((m) => m.equals(req.user._id))) {
+      return res.status(400).json({ error: "You are already a member" });
+    }
 
-    io.emit("room:updated", { id: room._id.toString() });
-    res.json({ room: updated.toPublic(req.user._id) });
+    try {
+      await JoinRequest.create({ user: req.user._id, channel: channel._id, room: room._id });
+    } catch (err) {
+      if (err.code === 11000) return res.status(409).json({ error: "You already have a pending request" });
+      throw err;
+    }
+
+    io.to(`user:${channel.owner}`).emit("requests:changed"); // ping the admin
+    io.to(`user:${req.user._id}`).emit("requests:changed");
+    res.status(201).json({ ok: true });
+  });
+
+  router.delete("/:id/request", async (req, res) => {
+    const found = await findRoomInMyChannel(req, res);
+    if (!found) return;
+    const { room, channel } = found;
+
+    await JoinRequest.deleteOne({ user: req.user._id, channel: channel._id, room: room._id, status: "pending" });
+    io.to(`user:${channel.owner}`).emit("requests:changed");
+    io.to(`user:${req.user._id}`).emit("requests:changed");
+    res.json({ ok: true });
   });
 
   router.post("/:id/leave", async (req, res) => {
     const room = await findRoom(req, res);
     if (!room) return;
 
-    // The owner can't abandon their own room; they can delete it instead.
+    if (room.isGlobal) return res.status(400).json({ error: "Everyone stays in the Global room" });
+    // The admin created the room, so they delete it instead of leaving it.
     if (room.owner.equals(req.user._id)) {
-      return res.status(400).json({ error: "Owners can't leave. Delete the room instead." });
+      return res.status(400).json({ error: "Admins can't leave. Delete the room instead." });
     }
 
     await Room.updateOne({ _id: room._id }, { $pull: { members: req.user._id } });
-    const updated = await Room.findById(room._id);
-
-    io.emit("room:updated", { id: room._id.toString() });
-    res.json({ room: updated.toPublic(req.user._id) });
+    io.in(`user:${req.user._id}`).socketsLeave(`room:${room._id}`); // stop live messages at once
+    refresh(room.channel);
+    res.json({ ok: true });
   });
 
-  // Only the owner may delete a room (authorization check).
+  // Only the admin of the room's channel may delete it.
   router.delete("/:id", async (req, res) => {
     const room = await findRoom(req, res);
     if (!room) return;
 
-    if (!room.owner.equals(req.user._id)) {
-      return res.status(403).json({ error: "Only the room owner can delete it" });
+    const channel = room.isGlobal ? null : await Channel.findById(room.channel);
+    if (!channel || !channel.owner.equals(req.user._id)) {
+      return res.status(403).json({ error: "Only the channel admin can delete a room" });
     }
 
     await Message.deleteMany({ room: room._id });
+    await JoinRequest.deleteMany({ room: room._id });
     await room.deleteOne();
 
-    io.emit("room:deleted", { id: room._id.toString() });
+    io.socketsLeave(`room:${room._id}`);
+    refresh(channel._id);
     res.json({ ok: true });
   });
 
-  // Message history. Members only — joining is what grants read access.
+  // Message history: only for people who may read the room (see Room.findAccessible).
   router.get("/:id/messages", async (req, res) => {
     const room = await findRoom(req, res);
     if (!room) return;
 
-    if (!room.members.some((m) => m.equals(req.user._id))) {
-      return res.status(403).json({ error: "Join this room to see its messages" });
+    if (!(await Room.findAccessible(room._id, req.user._id))) {
+      return res.status(403).json({ error: "You don't have access to this room" });
     }
 
     const messages = await Message.find({ room: room._id })

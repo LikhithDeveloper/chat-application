@@ -2,10 +2,13 @@
 const mongoose = require("mongoose");
 const config = require("./src/config");
 const { createApp } = require("./src/app");
+const { prepareDatabase } = require("./src/prepareDatabase");
 
 async function main() {
   await mongoose.connect(config.mongoUri);
   console.log("MongoDB connected");
+
+  await prepareDatabase(); // indexes, the Global room, and moving old rooms into a channel
 
   const { server } = createApp();
   server.listen(config.port, () => {

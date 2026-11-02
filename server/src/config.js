@@ -17,6 +17,7 @@ const config = {
   accessSecret: required("JWT_ACCESS_SECRET"),
   accessTtl: "15m", // short-lived: a stolen access token is only useful briefly
   refreshTtlDays: 7,
+  authRateLimit: Number(env.AUTH_RATE_LIMIT) || 20, // login/register attempts per 15 min per IP
 };
 
 if (config.accessSecret.length < 32) {

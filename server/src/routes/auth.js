@@ -7,6 +7,7 @@ const User = require("../models/User");
 const { validate } = require("../middleware/validate");
 const { requireAuth } = require("../middleware/auth");
 const tokens = require("../tokens");
+const config = require("../config");
 
 const router = express.Router();
 
@@ -18,10 +19,10 @@ const LOCK_MINUTES = 15;
 // so attackers can't discover valid emails by measuring response time.
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", BCRYPT_COST);
 
-// Max 20 attempts per 15 minutes per IP on login/register.
+// Max attempts per 15 minutes per IP on login/register (20 unless AUTH_RATE_LIMIT says otherwise).
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: config.authRateLimit,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many attempts, try again later" },

@@ -9,6 +9,7 @@ const config = require("./config");
 const { createSocketServer } = require("./socket");
 const authRoutes = require("./routes/auth");
 const roomRoutes = require("./routes/rooms");
+const channelRoutes = require("./routes/channels");
 const { notFound, errorHandler } = require("./middleware/errors");
 
 // Builds the app without starting it (so tests can use it too).
@@ -26,6 +27,7 @@ function createApp() {
 
   app.get("/api/health", (req, res) => res.json({ ok: true }));
   app.use("/api/auth", authRoutes);
+  app.use("/api/channels", channelRoutes(io));
   app.use("/api/rooms", roomRoutes(io));
 
   app.use(notFound);

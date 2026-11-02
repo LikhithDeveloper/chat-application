@@ -129,3 +129,53 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px #7c6cff30; }
   .sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
   .message { max-width: 90%; }
 }
+
+/* ---------- Global chat ---------- */
+.room-item.global { margin: 0 12px 10px; width: calc(100% - 24px); background: linear-gradient(135deg, #35d49a22, #5b8cff22); border: 1px solid #35d49a55; }
+.room-item.global:hover { background: linear-gradient(135deg, #35d49a33, #5b8cff33); }
+.room-item.global.active { outline: 1px solid var(--green); }
+.avatar.globe { background: linear-gradient(135deg, #35d49a, #5b8cff); font-size: 20px; }
+
+/* ---------- Channels ---------- */
+.avatar.chan { background: linear-gradient(135deg, #8b6cff, #5b8cff); font-size: 18px; }
+.channel-block { margin-bottom: 6px; }
+.channel-head { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 10px; }
+.channel-head.active { background: #7c6cff22; }
+.channel-head:hover { background: var(--panel-2); }
+.chev { width: 22px; color: var(--muted); font-size: 12px; padding: 4px; }
+.channel-name { flex: 1; text-align: left; font-weight: 700; padding: 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge-count { background: var(--danger); color: white; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-left: 6px; }
+.room-sub-list { margin: 2px 0 6px 22px; border-left: 2px solid var(--border); padding-left: 6px; }
+.room-sub { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 6px 10px; border-radius: 8px; color: var(--text); font-size: 14px; }
+.room-sub:hover { background: var(--panel-2); }
+.room-sub.active { background: linear-gradient(135deg, #7c6cff30, #5b8cff20); }
+.room-sub.dim { color: var(--muted); }
+.room-sub .hash { width: 16px; text-align: center; color: var(--muted); }
+.room-sub .rname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-sub em { font-size: 11px; color: var(--primary-2); }
+.empty.small { font-size: 12px; padding: 2px 8px; }
+
+.channel-body { flex: 1; overflow-y: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.panel-head h3 { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+.request-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.request-actions { display: flex; gap: 8px; }
+.room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.room-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; transition: border-color .2s, transform .15s; }
+.room-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.room-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
+.room-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.room-card .muted { font-size: 13px; }
+.pill { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.pill.public { background: #35d49a22; color: var(--green, #35d49a); }
+.pill.private { background: #ff5d7322; color: var(--danger); }
+
+.type-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 16px; }
+.type-card { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; text-align: left; padding: 12px; border-radius: 12px; background: var(--panel-2); border: 2px solid var(--border); transition: .15s; }
+.type-card:hover { border-color: var(--primary); }
+.type-card.selected { border-color: var(--primary); background: #7c6cff1f; }
+.type-card .t-icon { font-size: 22px; }
+.type-card small { color: var(--muted); }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2a1020; border: 1px solid var(--danger); color: #ffb3bf; padding: 12px 20px; border-radius: 12px; z-index: 30; cursor: pointer; box-shadow: 0 10px 30px #000a; animation: pop .2s ease-out; }
